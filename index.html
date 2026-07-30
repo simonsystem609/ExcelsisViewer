@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ExcelsisView | Local CAD and PDF Viewer</title>
+    <meta
+      name="description"
+      content="ExcelsisView is an open-source Windows viewer for DXF, DWG, PDF, and supported 3D PDF documents, with local processing and isolated native parsers."
+    >
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body id="top">
+    <header class="site-header" data-header>
+      <a class="brand" href="#top" aria-label="ExcelsisView home">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>ExcelsisView</span>
+      </a>
+      <nav aria-label="Main navigation">
+        <a href="#viewer">Viewer</a>
+        <a href="#release">Release status</a>
+        <a class="help-link" href="#excelsis3d">Excelsis3D <span>dev help wanted</span></a>
+        <a href="#contribute">Contribute</a>
+        <a href="https://simonsystem609.github.io/ExcelsisHelper/">Excelsis Helper</a>
+        <a class="support-nav-link" href="https://buymeacoffee.com/lakatos">Support</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="hero-title">
+        <img
+          class="hero-media"
+          src="assets/excelsis-dxf-viewer.png"
+          alt=""
+          aria-hidden="true"
+        >
+        <div class="hero-wash" aria-hidden="true"></div>
+        <div class="hero-content">
+          <p class="eyebrow">Open-source · local-first · Windows</p>
+          <h1 id="hero-title">ExcelsisView</h1>
+          <p class="hero-copy">
+            One desktop viewer for DXF, DWG, regular PDF, and supported 3D PDF
+            documents, with document parsing kept local and risky native work
+            isolated from the application UI.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="https://github.com/simonsystem609/ExcelsisViewer">View repository</a>
+            <a class="button secondary" href="https://simonsystem609.github.io/ExcelsisHelper/">Explore Excelsis Helper</a>
+            <a class="button secondary" href="#excelsis3d">Excelsis3D plans</a>
+          </div>
+          <div class="support-note">
+            <p>Support open releases, format testing, and security review work.</p>
+            <a class="button support-button" href="https://buymeacoffee.com/lakatos">Support the work</a>
+          </div>
+        </div>
+      </section>
+
+      <section id="release" class="band compact-section" aria-labelledby="release-title">
+        <div class="section-shell compact-grid">
+          <div>
+            <p class="eyebrow">Release gate</p>
+            <h2 id="release-title">The newest build is under final review.</h2>
+          </div>
+          <div class="compact-copy">
+            <p>
+              A public installer and source release will appear here only after
+              licensing, corresponding-source, packaged-byte, dependency,
+              security, and privacy checks pass against the exact candidate.
+            </p>
+            <p>
+              Until then, this page intentionally offers no unaudited download.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="viewer" class="feature-section viewer-section" aria-labelledby="viewer-title">
+        <div class="section-shell split-layout reverse">
+          <figure class="screenshot-frame">
+            <img
+              src="assets/excelsis-dxf-viewer.png"
+              alt="ExcelsisView DXF workspace with selection, offset controls, and feature list"
+            >
+            <figcaption>DXF viewing and editing with visible file state, selection, dimensions, offsets, and feature review.</figcaption>
+          </figure>
+          <div class="copy-block">
+            <p class="eyebrow">CAD and PDF in one application</p>
+            <h2 id="viewer-title">Inspect common engineering documents without uploading them.</h2>
+            <p>
+              ExcelsisView combines DXF workflows, DWG conversion, regular PDF
+              tools, supported 3D PDF viewing, and read-only thumbnail
+              machinery in one Windows application.
+            </p>
+            <ul class="check-list">
+              <li>DXF selection, measurement, offsets, contour repair, mirroring, and feature review.</li>
+              <li>DWG handling through the open-source LibreDWG toolchain.</li>
+              <li>Regular PDF viewing plus supported 3D PDF model display.</li>
+              <li>Bounded, read-only thumbnails and local document processing.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="band feature-section" aria-labelledby="security-title">
+        <div class="section-shell split-layout">
+          <div class="copy-block">
+            <p class="eyebrow">Security boundary</p>
+            <h2 id="security-title">Untrusted native parsing belongs outside Electron.</h2>
+            <p>
+              Native DWG and 3D-document parsing is designed to run in a
+              zero-capability Windows AppContainer with process, time, memory,
+              input, and output limits. Renderer sandboxing, ASAR integrity,
+              native-file integrity checks, and blocked network permissions
+              add defense in depth.
+            </p>
+            <p>
+              Each public release is expected to include the complete
+              corresponding application source, exact third-party source and
+              notices, installer checksums, and a candid statement of signing
+              and scan status.
+            </p>
+          </div>
+          <figure class="screenshot-frame">
+            <img
+              src="assets/excelsis-recent-documents.png"
+              alt="Excelsis recent-document interface"
+            >
+            <figcaption>Local document access shared across the Excelsis desktop-tool family.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section id="excelsis3d" class="excelsis3d-section" aria-labelledby="excelsis3d-title">
+        <div class="section-shell">
+          <div class="section-heading">
+            <p class="eyebrow">Excelsis3D plans · dev help wanted</p>
+            <h2 id="excelsis3d-title">From document viewing toward open parametric CAD.</h2>
+            <p>
+              The longer-term goal is an open CAD workflow in which images,
+              prompts, dimensions, thread sizes, bounding boxes, and other
+              constraints can become editable parametric features—without
+              hiding the engineering model behind a black box.
+            </p>
+            <div class="inline-actions">
+              <a class="button primary" href="https://discord.gg/uJrSBQm68">Join the Excelsis3D dev Discord</a>
+              <a class="button secondary" href="https://github.com/simonsystem609/ExcelsisViewer/issues">Share an idea</a>
+            </div>
+          </div>
+
+          <div class="idea-grid">
+            <article class="idea-card">
+              <h3>Open and hackable</h3>
+              <p>
+                The direction begins with familiar sketch, extrude, cut,
+                fillet, and constraint workflows on an open geometry stack.
+              </p>
+            </article>
+            <article class="idea-card">
+              <h3>Resilient references</h3>
+              <p>
+                Persistent engineering references are kept distinct from
+                visible evaluated topology so model intent can survive more
+                feature changes.
+              </p>
+            </article>
+            <article class="idea-card wide">
+              <h3>Development help wanted</h3>
+              <p>
+                CAD developers, UI contributors, security reviewers, file-format
+                testers, technical writers, manufacturing users, and AI-coding
+                experimenters are welcome. Planned directions include
+                assemblies, CAM, FEM, semantic feature graphs, and AI-assisted
+                modeling.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="contribute" class="band closing-section" aria-labelledby="contribute-title">
+        <div class="section-shell closing-grid">
+          <div>
+            <p class="eyebrow">Support and development</p>
+            <h2 id="contribute-title">Test carefully. Report clearly. Build openly.</h2>
+          </div>
+          <div>
+            <p>
+              Report reproducible problems, propose documentation improvements,
+              contribute code, or help test representative non-confidential
+              files. Please do not upload confidential customer or CAD
+              documents to public issues.
+            </p>
+            <div class="inline-actions">
+              <a class="button primary" href="https://github.com/simonsystem609/ExcelsisViewer/issues">Open an issue</a>
+              <a class="button secondary" href="https://github.com/simonsystem609/ExcelsisViewer">Browse the repository</a>
+              <a class="button support-button" href="https://buymeacoffee.com/lakatos">Support development</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="section-shell footer-layout">
+        <span>ExcelsisView</span>
+        <span>
+          ExcelsisView is AGPL-3.0-or-later. Product names describe file-format
+          context only. <a href="LICENSE">License</a> ·
+          <a href="https://simonsystem609.github.io/ExcelsisHelper/">Excelsis Helper</a>
+        </span>
+      </div>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>
