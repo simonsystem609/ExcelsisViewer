@@ -1,19 +1,55 @@
 # ExcelsisView
 
-ExcelsisView is an open-source Windows viewer for DXF, DWG, regular PDF, and
-supported 3D PDF documents.
+ExcelsisView 1.1.14 is an open-source Windows viewer for DXF, DWG, regular
+PDF, and supported PRC/U3D 3D PDF documents. Document processing is local,
+and native document parsers run behind Windows process-containment and
+resource limits.
 
-The newest candidate is undergoing an exact licensing, corresponding-source,
-packaged-byte, dependency, privacy, and security review. No new installer is
-published from this repository until that gate passes.
+## Download
+
+- [Windows installer](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.14/ExcelsisView-Setup-1.1.14.exe)
+- [Release notes and all assets](https://github.com/simonsystem609/ExcelsisViewer/releases/tag/excelsis-view-v1.1.14)
+- [Exact corresponding-source archive](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.14/SOURCE-ExcelsisView-1.1.14.zip)
+- [SHA-256 checksums](SHA256SUMS.txt)
+- [Licensing and security audit](AUDIT-1.1.14.md)
+
+The installer and ExcelsisView binaries are currently unsigned, so Windows
+may show a SmartScreen warning. Microsoft Defender was disabled in the build
+environment, so this release has static, dependency, containment, integrity,
+and provenance checks but no local Defender signature scan. Verify the
+installer SHA-256 before running it.
+
+## Source and build
+
+The exact expanded source is committed under [`source/`](source/). It
+contains the application source, the pinned modified nanoPRC source, the
+pinned modified U3D source, the LibreDWG source archive, license texts, and
+the scripts used to rebuild the release.
+
+From `source/ExcelsisView-1.1.14/app-asar-extract` on Windows with Node.js 24,
+npm, PowerShell, the documented native prerequisites, and Zig 0.16.0:
+
+```powershell
+npm ci
+npm run dist
+```
+
+See
+[`source/ExcelsisView-1.1.14/app-asar-extract/SOURCE.md`](source/ExcelsisView-1.1.14/app-asar-extract/SOURCE.md)
+for the complete build requirements.
+
+## Project links
 
 - Project site: https://simonsystem609.github.io/ExcelsisViewer/
 - Excelsis Helper: https://simonsystem609.github.io/ExcelsisHelper/
 - Support and issue reports: https://github.com/simonsystem609/ExcelsisViewer/issues
-- Excelsis3D development discussion: https://discord.gg/uJrSBQm68
+- Excelsis3D plans and development help: https://discord.gg/uJrSBQm68
+- Support development: https://buymeacoffee.com/lakatos
 
 Please do not upload confidential customer or CAD files to public issues.
 
 ## License
 
-AGPL-3.0-or-later. See [LICENSE](LICENSE).
+Authored ExcelsisView code is `AGPL-3.0-or-later`; see [LICENSE](LICENSE).
+Bundled third-party components retain their own compatible licenses and
+notices.

@@ -1,0 +1,8 @@
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:white}
+#pages{margin:0;padding:0}
+.print-sheet{display:flex;align-items:center;justify-content:center;overflow:hidden;margin:0;background:white;break-after:page;page-break-after:always}
+.print-sheet:last-child{break-after:auto;page-break-after:auto}
+.print-sheet canvas{display:block;flex:none;background:white}
+@page{margin:0}
+@media screen{body{background:#ddd}.print-sheet{margin:10px auto;box-shadow:0 2px 12px #0005}}

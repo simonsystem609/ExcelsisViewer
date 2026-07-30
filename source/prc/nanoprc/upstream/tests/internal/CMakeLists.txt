@@ -1,0 +1,141 @@
+# Internal development/diagnostic tools -- NOT part of the permanent test
+# suite (see tests/CMakeLists.txt for that; none of these are registered
+# via add_test/CTest). Each is a narrow, single-purpose command-line tool
+# built during active debugging of the compressed-tessellation write path
+# (see each file's own header comment for what it does specifically, how
+# it works, and its known limitations). Kept as permanent reference tooling
+# -- these found and precisely isolated three real, committed bit-encoding
+# bugs during that investigation, and remain useful for any future format-
+# level debugging -- but deliberately separated from tests/unit/ so they
+# are never mistaken for permanent tests or part of the public API surface.
+
+add_executable(check_single_tri_pdf tests/internal/check_single_tri_pdf.c)
+target_link_libraries(check_single_tri_pdf prc_static)
+target_include_directories(check_single_tri_pdf PRIVATE tests)
+
+add_executable(scan_prc tests/internal/scan_prc.c)
+target_link_libraries(scan_prc prc_static)
+target_include_directories(scan_prc PRIVATE tests)
+
+add_executable(embed_real_prc tests/internal/embed_real_prc.c)
+target_link_libraries(embed_real_prc prc_static)
+target_include_directories(embed_real_prc PRIVATE tests)
+
+add_executable(extract_raw_prc tests/internal/extract_raw_prc.c)
+target_link_libraries(extract_raw_prc prc_static)
+target_include_directories(extract_raw_prc PRIVATE tests)
+
+add_executable(splice_model_section tests/internal/splice_model_section.c)
+target_link_libraries(splice_model_section prc_static)
+target_include_directories(splice_model_section PRIVATE tests)
+
+add_executable(splice_tree_section tests/internal/splice_tree_section.c)
+target_link_libraries(splice_tree_section prc_static)
+target_include_directories(splice_tree_section PRIVATE tests)
+
+add_executable(splice_schema_tree_section tests/internal/splice_schema_tree_section.c)
+target_link_libraries(splice_schema_tree_section prc_static)
+target_include_directories(splice_schema_tree_section PRIVATE tests)
+
+add_executable(splice_schema_tree_tess_section tests/internal/splice_schema_tree_tess_section.c)
+target_link_libraries(splice_schema_tree_tess_section prc_static)
+target_include_directories(splice_schema_tree_tess_section PRIVATE tests)
+
+add_executable(splice_schema_tree_tess_section_triangles tests/internal/splice_schema_tree_tess_section_triangles.c)
+target_link_libraries(splice_schema_tree_tess_section_triangles prc_static)
+target_include_directories(splice_schema_tree_tess_section_triangles PRIVATE tests)
+
+# Pure byte-level splicer, no nanoPRC linkage needed.
+add_executable(splice_geom_from_real tests/internal/splice_geom_from_real.c)
+
+add_executable(reencode_real_tess tests/internal/reencode_real_tess.c)
+target_link_libraries(reencode_real_tess prc_static)
+target_include_directories(reencode_real_tess PRIVATE tests)
+
+add_executable(reencode_real_tess_triangles tests/internal/reencode_real_tess_triangles.c)
+target_link_libraries(reencode_real_tess_triangles prc_static)
+target_include_directories(reencode_real_tess_triangles PRIVATE tests)
+
+add_executable(verify_tess_positions tests/internal/verify_tess_positions.c)
+target_link_libraries(verify_tess_positions prc_static)
+target_include_directories(verify_tess_positions PRIVATE tests)
+
+add_executable(splice_tess_field tests/internal/splice_tess_field.c)
+target_link_libraries(splice_tess_field prc_static)
+target_include_directories(splice_tess_field PRIVATE tests)
+
+add_executable(verify_manifold_real tests/internal/verify_manifold_real.c)
+target_link_libraries(verify_manifold_real prc_static)
+target_include_directories(verify_manifold_real PRIVATE tests)
+
+add_executable(verify_manifold_pdf tests/internal/verify_manifold_pdf.c)
+target_link_libraries(verify_manifold_pdf prc_static)
+target_include_directories(verify_manifold_pdf PRIVATE tests)
+
+add_executable(detect_tess_spikes tests/internal/detect_tess_spikes.c tests/internal/tess_spike_common.c)
+target_link_libraries(detect_tess_spikes prc_static)
+target_include_directories(detect_tess_spikes PRIVATE tests)
+
+add_executable(check_grid_radius tests/internal/check_grid_radius.c)
+target_link_libraries(check_grid_radius prc_static)
+target_include_directories(check_grid_radius PRIVATE tests)
+
+add_executable(dump_raw_tess_arrays tests/internal/dump_raw_tess_arrays.c)
+target_link_libraries(dump_raw_tess_arrays prc_static)
+target_include_directories(dump_raw_tess_arrays PRIVATE tests)
+
+add_executable(prc_to_pdf tests/internal/prc_to_pdf.c)
+target_link_libraries(prc_to_pdf prc_static)
+target_include_directories(prc_to_pdf PRIVATE tests)
+
+add_executable(reauthor_tess_pdf tests/internal/reauthor_tess_pdf.c)
+target_link_libraries(reauthor_tess_pdf prc_static)
+target_include_directories(reauthor_tess_pdf PRIVATE tests)
+
+add_executable(dump_uncompressed_tess_fields tests/internal/dump_uncompressed_tess_fields.c)
+target_link_libraries(dump_uncompressed_tess_fields prc_static)
+target_include_directories(dump_uncompressed_tess_fields PRIVATE tests)
+
+add_executable(dump_tree_fields tests/internal/dump_tree_fields.c)
+target_link_libraries(dump_tree_fields prc_static)
+target_include_directories(dump_tree_fields PRIVATE tests)
+
+add_executable(census_tess tests/internal/census_tess.c)
+target_link_libraries(census_tess prc_static)
+target_include_directories(census_tess PRIVATE tests)
+
+add_executable(check_vertex_normal_variance tests/internal/check_vertex_normal_variance.c)
+target_link_libraries(check_vertex_normal_variance prc_static)
+target_include_directories(check_vertex_normal_variance PRIVATE tests)
+
+add_executable(check_schema_extension tests/internal/check_schema_extension.c)
+target_link_libraries(check_schema_extension prc_static)
+target_include_directories(check_schema_extension PRIVATE tests)
+
+add_executable(matrix_blank_tree tests/internal/matrix_blank_tree.c)
+target_link_libraries(matrix_blank_tree prc_static)
+target_include_directories(matrix_blank_tree PRIVATE tests)
+
+add_executable(standalone_tetrahedron_triangles tests/internal/standalone_tetrahedron_triangles.c)
+target_link_libraries(standalone_tetrahedron_triangles prc_static)
+target_include_directories(standalone_tetrahedron_triangles PRIVATE tests)
+
+add_executable(standalone_grid_triangles tests/internal/standalone_grid_triangles.c)
+target_link_libraries(standalone_grid_triangles prc_static)
+target_include_directories(standalone_grid_triangles PRIVATE tests)
+
+add_executable(experiment_mustcalc_quad tests/internal/experiment_mustcalc_quad.c)
+target_link_libraries(experiment_mustcalc_quad prc_static)
+target_include_directories(experiment_mustcalc_quad PRIVATE tests)
+
+add_executable(standalone_quad_deeptree tests/internal/standalone_quad_deeptree.c)
+target_link_libraries(standalone_quad_deeptree prc_static)
+target_include_directories(standalone_quad_deeptree PRIVATE tests)
+
+add_executable(bisect_tess_positions tests/internal/bisect_tess_positions.c)
+target_link_libraries(bisect_tess_positions prc_static)
+target_include_directories(bisect_tess_positions PRIVATE tests)
+
+add_executable(inspect_position_bits tests/internal/inspect_position_bits.c)
+target_link_libraries(inspect_position_bits prc_static)
+target_include_directories(inspect_position_bits PRIVATE tests)

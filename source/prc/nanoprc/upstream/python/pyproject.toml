@@ -1,0 +1,37 @@
+[build-system]
+requires = [
+    "scikit-build-core>=0.10",
+    "pybind11>=2.12"
+]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "nanoprc-py"
+version = "0.1.2"
+description = "Python bindings for reading and writing PRC and PDF-embedded PRC data with nanoPRC"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "AGPL-3.0-or-later" }
+authors = [
+  { name = "nanoPRC contributors" }
+]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: C++",
+  "License :: OSI Approved :: GNU Affero General Public License v3",
+  "Operating System :: OS Independent"
+]
+
+[project.urls]
+Homepage = "https://github.com/mvrhel/nanoPRC"
+Repository = "https://github.com/mvrhel/nanoPRC"
+Issues = "https://github.com/mvrhel/nanoPRC/issues"
+
+[tool.scikit-build]
+cmake.version = ">=3.20"
+cmake.source-dir = "."
+wheel.packages = ["src/nanoprc_py"]
+build-dir = "build/{wheel_tag}"
+
+[tool.scikit-build.cmake.define]
+CMAKE_BUILD_TYPE = "Release"
