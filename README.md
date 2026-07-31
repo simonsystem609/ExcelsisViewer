@@ -21,9 +21,10 @@ and truncated image data.
 
 The installer and ExcelsisView binaries are currently unsigned, so Windows
 may show a SmartScreen warning. Microsoft Defender was disabled in the build
-environment, so this release has static, dependency, containment, integrity,
-and provenance checks but no local Defender signature scan. Verify the
-installer SHA-256 before running it.
+environment, so no Defender scan is claimed. Kaspersky 21.25 with 2026-07-31
+bases scanned the exact release assets, unpacked payload, and expanded source
+with zero detections or suspicions. Verify the installer SHA-256 before running
+it.
 
 ## Source and build
 

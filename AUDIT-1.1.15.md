@@ -99,6 +99,14 @@ previous decoder code.
 - Installer, ASAR, source, and native payloads were scanned for private paths,
   build identity, the observed public IP address, credentials, private keys,
   and high-confidence token patterns. No releasable hit remained.
+- Kaspersky 21.25 with full bases dated 2026-07-31 07:20 scanned the exact 12
+  release assets, expanded installer payload, expanded corresponding source,
+  and expanded LibreDWG source: 30,761 objects, zero detections, zero
+  suspicions, zero errors, and zero skipped. Its 20 archive-parser warnings are
+  repetitions of the same two documentation-index members inside upstream
+  zlib's `DotZLib.chm`; those files match pinned zlib commit
+  `f9dd6009be3ed32415edf1e89d1bc38380ecb95d` byte-for-byte and were not
+  classified as suspicious or malicious.
 
 ## Known caveats and TODOs
 
@@ -108,7 +116,8 @@ previous decoder code.
   `d3dcompiler_47.dll` is the only shipped file with a valid signature.
 - Microsoft Defender and its signatures are disabled on the build machine.
   No Defender malware-signature scan was possible. Do not describe this build
-  as antivirus-scanned.
+  as Defender-scanned; the separate Kaspersky result above is the malware-scan
+  evidence for this release.
 - The installer was audited non-interactively but was not launched or installed
   during the release audit. Test installation, upgrade, file associations,
   Explorer thumbnails, document workflows, and uninstall on a disposable
