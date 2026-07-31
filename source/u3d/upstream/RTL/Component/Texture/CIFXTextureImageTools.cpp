@@ -28,6 +28,7 @@
 
 #include "CIFXTextureImageTools.h"
 #include "CIFXUtilities.h"
+#include "IFXImageSizeUtils.h"
 #include "IFXTextureErrors.h"
 #include "IFXIPP.h"
 
@@ -194,6 +195,7 @@ IFXRESULT CIFXTextureImageTools::SetTexels(U32 uWidth, U32 uHeight, U8 uFormat, 
 {
 	IFXRESULT iResult = IFX_OK;
 	U32 uSize=0;
+	size_t uPitch = 0;
 
 	if (NULL == pinTexels)
 	{
@@ -204,6 +206,24 @@ IFXRESULT CIFXTextureImageTools::SetTexels(U32 uWidth, U32 uHeight, U8 uFormat, 
 	{
 		uSize = ComputeBufferSize(uWidth,uHeight,uFormat);
 		if (uSize > 0)
+		{
+			U32 uPixelSize = 0;
+			if (IFXTEXTUREMAP_FORMAT_LUMINANCE == uFormat)
+				uPixelSize = 1;
+			else if (IFXTextureObject::IFXTEXTUREMAP_FORMAT_RGB24 == uFormat ||
+				IFXTextureObject::IFXTEXTUREMAP_FORMAT_BGR24 == uFormat)
+				uPixelSize = 3;
+			else if (IFXTextureObject::IFXTEXTUREMAP_FORMAT_RGBA32 == uFormat ||
+				IFXTextureObject::IFXTEXTUREMAP_FORMAT_BGRA32 == uFormat)
+				uPixelSize = 4;
+
+			iResult = IFXCheckedMultiplySize(
+				(size_t)uWidth,
+				(size_t)uPixelSize,
+				&uPitch);
+		}
+
+		if (IFXSUCCESS(iResult) && uSize > 0)
 		{
 			{
 				//Don't want to copy this buffer, just
@@ -240,7 +260,7 @@ IFXRESULT CIFXTextureImageTools::SetTexels(U32 uWidth, U32 uHeight, U8 uFormat, 
 					else 
 						m_eCurOrder = IFX_BGRA;
 				}
-				m_uPitch  = m_uWidth*m_u8PixelSize;
+				m_uPitch  = (U32)uPitch;
 				m_bInitialized = TRUE;
 			}
 		}
@@ -255,23 +275,35 @@ IFXRESULT CIFXTextureImageTools::SetTexels(U32 uWidth, U32 uHeight, U8 uFormat, 
 
 
 U32 CIFXTextureImageTools::ComputeBufferSize(U32 uWidth, U32 uHeight, U8 uFormat) {
-	U32 uSize = 0;
+	U32 uComponentCount = 0;
 	if (IFXTEXTUREMAP_FORMAT_LUMINANCE == uFormat)
 	{
-		uSize = uWidth * uHeight;
+		uComponentCount = 1;
 	}
 	else if (IFXTextureObject::IFXTEXTUREMAP_FORMAT_RGB24 == uFormat ||
 			 IFXTextureObject::IFXTEXTUREMAP_FORMAT_BGR24 == uFormat)
 	{
-		uSize = uWidth * uHeight * 3;
+		uComponentCount = 3;
 	}
 	else if (IFXTextureObject::IFXTEXTUREMAP_FORMAT_RGBA32 == uFormat ||
 		     IFXTextureObject::IFXTEXTUREMAP_FORMAT_BGRA32 == uFormat)
 	{
-		uSize = uWidth * uHeight * 4;
+		uComponentCount = 4;
 		m_bHasAlpha = TRUE;
 	}
-	return uSize;
+
+	size_t uSize = 0;
+	if (0 == uComponentCount ||
+		IFXFAILURE(IFXCheckedImageByteCount(
+			uWidth,
+			uHeight,
+			uComponentCount,
+			&uSize)))
+	{
+		return 0;
+	}
+
+	return (U32)uSize;
 }
 
 
@@ -305,10 +337,31 @@ IFXRESULT IFXAPI_CALLTYPE CIFXTextureImageTools::MipMap(STextureOutputInfo* pSrc
 										U32 uDstX, U32 uDstY)
 {
 	IFXRESULT iResult = IFX_OK;
+	size_t uTightRowBytes = 0;
+	size_t uCopyBytes = 0;
 
-	if(pSrcOutputInfo->m_pData == NULL || pDstOutputInfo->m_pData == NULL )
+	if(NULL == pSrcOutputInfo ||
+		NULL == pDstOutputInfo ||
+		NULL == pSrcOutputInfo->m_pData ||
+		NULL == pDstOutputInfo->m_pData ||
+		NULL == m_pBuffer)
+	{
 		iResult = IFX_E_INVALID_POINTER;
+	}
 	else
+	{
+		iResult = IFXCheckedImagePitchByteCount(
+			pDstOutputInfo->m_width,
+			pDstOutputInfo->m_height,
+			m_u8PixelSize,
+			pDstOutputInfo->m_pitch,
+			&uTightRowBytes,
+			&uCopyBytes);
+		if (IFXSUCCESS(iResult) && uCopyBytes > (size_t)m_uSize)
+			iResult = IFX_E_INVALID_RANGE;
+	}
+
+	if (IFXSUCCESS(iResult))
 	{
 		_IFXTextureImageTools_MipMap(m_pBuffer, pDstOutputInfo->m_pData, m_u8PixelSize, m_bHasAlpha, pSrcOutputInfo, pDstOutputInfo, uSrcX, uSrcY, uDstX, uDstY);
 		m_eCurOrder = pDstOutputInfo->eChannelOrder;
@@ -319,7 +372,8 @@ IFXRESULT IFXAPI_CALLTYPE CIFXTextureImageTools::MipMap(STextureOutputInfo* pSrc
 		pSrcOutputInfo->m_pitch = 0;
 		//We don't delete the initial buffer to save to memcpy calls.
 		//This will reduce the memory foot prints.
-		memcpy(m_pBuffer, pDstOutputInfo->m_pData, sizeof(U8)*m_uHeight*m_uPitch);
+		memcpy(m_pBuffer, pDstOutputInfo->m_pData, uCopyBytes);
+		m_uSize = (U32)uCopyBytes;
 	}
 
 	return iResult;
@@ -328,12 +382,42 @@ IFXRESULT IFXAPI_CALLTYPE CIFXTextureImageTools::MipMap(STextureOutputInfo* pSrc
 
 IFXRESULT IFXAPI_CALLTYPE CIFXTextureImageTools::ResizeImage(U32 uNewWidth, U32 uNewHeight)
 {
-	U32 uSize = uNewWidth*uNewHeight*m_u8PixelSize;
-	U8* pNewBuffer = (U8*)IFXAllocate(uSize);
-	if (NULL == pNewBuffer)
-		return IFX_E_OUT_OF_MEMORY;
+	if (NULL == m_pBuffer)
+		return IFX_E_INVALID_POINTER;
 
-	_IFXTextureImageTools_ResizeImage(m_pBuffer, pNewBuffer, m_u8PixelSize, m_bHasAlpha, m_uWidth, m_uHeight, uNewWidth, uNewHeight);
+	size_t uSize = 0;
+	IFXRESULT iResult = IFXCheckedImageByteCount(
+		uNewWidth,
+		uNewHeight,
+		m_u8PixelSize,
+		&uSize);
+	if (IFXFAILURE(iResult))
+		return iResult;
+
+	void* pAllocatedBuffer = NULL;
+	iResult = IFXAllocateCheckedImageBytes(
+		uSize,
+		IFXAllocate,
+		&pAllocatedBuffer);
+	if (IFXFAILURE(iResult))
+		return iResult;
+
+	U8* pNewBuffer = (U8*)pAllocatedBuffer;
+
+	iResult = _IFXTextureImageTools_ResizeImage(
+		m_pBuffer,
+		pNewBuffer,
+		m_u8PixelSize,
+		m_bHasAlpha,
+		m_uWidth,
+		m_uHeight,
+		uNewWidth,
+		uNewHeight);
+	if (IFXFAILURE(iResult))
+	{
+		IFXDeallocate(pNewBuffer);
+		return iResult;
+	}
 
 	//We point this buffer to reformated image buf.
 	//We don't need to release the original buf.  The Texture Obj will taking care of
@@ -341,8 +425,8 @@ IFXRESULT IFXAPI_CALLTYPE CIFXTextureImageTools::ResizeImage(U32 uNewWidth, U32 
 	m_pBuffer = pNewBuffer;
 	m_uWidth = uNewWidth;
 	m_uHeight = uNewHeight;
-	m_uSize = uSize;
-	m_uPitch = m_uWidth*m_u8PixelSize;
+	m_uSize = (U32)uSize;
+	m_uPitch = (U32)((size_t)m_uWidth * (size_t)m_u8PixelSize);
 	m_bResized = TRUE;
 	return IFX_OK;
 }
@@ -351,25 +435,51 @@ IFXRESULT IFXAPI_CALLTYPE CIFXTextureImageTools::ResizeImage(U32 uNewWidth, U32 
 IFXRESULT CIFXTextureImageTools::ConvertToRenderFormat(STextureOutputInfo* pRenderImageInfo)
 {
 	IFXRESULT iResult = IFX_OK;
+	size_t uTightRowBytes = 0;
+	size_t uRenderBytes = 0;
+
+	if (NULL == pRenderImageInfo ||
+		NULL == pRenderImageInfo->m_pData ||
+		NULL == m_pBuffer)
+	{
+		return IFX_E_INVALID_POINTER;
+	}
+
+	iResult = IFXCheckedImagePitchByteCount(
+		pRenderImageInfo->m_width,
+		pRenderImageInfo->m_height,
+		m_u8PixelSize,
+		pRenderImageInfo->m_pitch,
+		&uTightRowBytes,
+		&uRenderBytes);
+	if (IFXFAILURE(iResult))
+		return iResult;
 
 	if (pRenderImageInfo->m_width != m_uWidth || pRenderImageInfo->m_height!= m_uHeight)
 		iResult = ResizeImage( pRenderImageInfo->m_width, pRenderImageInfo->m_height);
 
 	if (IFXSUCCESS(iResult))
 	{
-		ReformatImage ( pRenderImageInfo->m_pData,
+		iResult = ReformatImage ( pRenderImageInfo->m_pData,
 			m_eCurRenderFormat, m_eCurOrder,
 			pRenderImageInfo->eRenderFormat,
 			pRenderImageInfo->eChannelOrder,
 			0, 0, m_uPitch, 0, 0,
 			pRenderImageInfo->m_pitch, pRenderImageInfo->m_width,
 			pRenderImageInfo->m_height);
-		m_uWidth  = pRenderImageInfo->m_width;
-		m_uHeight = pRenderImageInfo->m_height;
-		m_uPitch  = pRenderImageInfo->m_pitch;
-		m_eCurRenderFormat = pRenderImageInfo->eRenderFormat;
-		m_eCurOrder = pRenderImageInfo->eChannelOrder;
+	}
 
+	if (IFXSUCCESS(iResult))
+	{
+		void* pAllocatedBuffer = NULL;
+		iResult = IFXAllocateCheckedImageBytes(
+			uRenderBytes,
+			IFXAllocate,
+			&pAllocatedBuffer);
+		if (IFXFAILURE(iResult))
+			return iResult;
+
+		memcpy(pAllocatedBuffer, pRenderImageInfo->m_pData, uRenderBytes);
 		//If the image resized in ResizeImage function, the m_pBuffer points
 		//at new allocated buffer, not the buffer from Texture obj.
 		//Therefor it needs to be deleted here.  Otherwise the m_pBuffer points
@@ -378,10 +488,15 @@ IFXRESULT CIFXTextureImageTools::ConvertToRenderFormat(STextureOutputInfo* pRend
 		if (m_bResized)
 		{
 			IFXDeallocate(m_pBuffer);
-			m_pBuffer = 0;
 		}
-		m_pBuffer = (U8*)IFXAllocate(m_uHeight*m_uPitch);
-		memcpy(m_pBuffer,pRenderImageInfo->m_pData,m_uPitch*m_uHeight);
+
+		m_pBuffer = (U8*)pAllocatedBuffer;
+		m_uWidth  = pRenderImageInfo->m_width;
+		m_uHeight = pRenderImageInfo->m_height;
+		m_uPitch  = pRenderImageInfo->m_pitch;
+		m_uSize = (U32)uRenderBytes;
+		m_eCurRenderFormat = pRenderImageInfo->eRenderFormat;
+		m_eCurOrder = pRenderImageInfo->eChannelOrder;
 	}
 
 	if (IFXSUCCESS(iResult))
@@ -1391,32 +1506,110 @@ void IFXTextureImageTools_BIVStretch(U8 m_u8PixelSize, BOOL m_bHasAlpha, U8 *pDe
 
 IFXRESULT IFXAPI_CALLTYPE IFXTextureImageTools_ResizeImage(U8* pSrc, U8* pDest, U8 m_u8PixelSize, BOOL m_bHasAlpha, U32 uSrcWidth, U32 uSrcHeight, U32 uDstWidth, U32 uDstHeight)
 {
+	if (NULL == pSrc || NULL == pDest)
+		return IFX_E_INVALID_POINTER;
+
+	size_t uSourceByteCount = 0;
+	size_t uDestinationByteCount = 0;
+	IFXRESULT iResult = IFXCheckedImageByteCount(
+		uSrcWidth,
+		uSrcHeight,
+		m_u8PixelSize,
+		&uSourceByteCount);
+	if (IFXFAILURE(iResult))
+		return iResult;
+
+	iResult = IFXCheckedImageByteCount(
+		uDstWidth,
+		uDstHeight,
+		m_u8PixelSize,
+		&uDestinationByteCount);
+	if (IFXFAILURE(iResult))
+		return iResult;
+
+	if (uSrcWidth == uDstWidth && uSrcHeight == uDstHeight)
+	{
+		memcpy(pDest, pSrc, uSourceByteCount);
+		return IFX_OK;
+	}
+
+	// The legacy bilinear helpers assume at least two samples and at least
+	// three color components. Use bounded nearest-neighbor sampling for
+	// one-pixel dimensions and luminance images.
+	if (1 == m_u8PixelSize ||
+		1 == uSrcWidth ||
+		1 == uSrcHeight ||
+		1 == uDstWidth ||
+		1 == uDstHeight)
+	{
+		for (U32 y = 0; y < uDstHeight; ++y)
+		{
+			const U32 sourceY = (1 == uDstHeight || 1 == uSrcHeight)
+				? 0
+				: (U32)(((U64)y * (U64)(uSrcHeight - 1)) /
+					(U64)(uDstHeight - 1));
+			for (U32 x = 0; x < uDstWidth; ++x)
+			{
+				const U32 sourceX = (1 == uDstWidth || 1 == uSrcWidth)
+					? 0
+					: (U32)(((U64)x * (U64)(uSrcWidth - 1)) /
+						(U64)(uDstWidth - 1));
+				const size_t sourceOffset =
+					((size_t)sourceY * (size_t)uSrcWidth +
+						(size_t)sourceX) * (size_t)m_u8PixelSize;
+				const size_t destinationOffset =
+					((size_t)y * (size_t)uDstWidth +
+						(size_t)x) * (size_t)m_u8PixelSize;
+				memcpy(
+					pDest + destinationOffset,
+					pSrc + sourceOffset,
+					(size_t)m_u8PixelSize);
+			}
+		}
+		return IFX_OK;
+	}
+
 	int src_width  = uSrcWidth;
 	int src_height = uSrcHeight;
 	int dest_width = uDstWidth;
 	int dest_height= uDstHeight;
 	int rows, cols;
+	const int src_row_bytes = src_width * (int)m_u8PixelSize;
+	const int dest_row_bytes = dest_width * (int)m_u8PixelSize;
 
 	U8* pTempBuffer = NULL;
+	size_t uTemporaryByteCount = 0;
 	if (dest_width > src_width) {
 		// vertical first then horizontal...
 		// allocate channel temporary space...
-		pTempBuffer = (U8*)IFXAllocate(dest_height * src_width*m_u8PixelSize);
-		if (!pTempBuffer)
-			return IFX_E_OUT_OF_MEMORY;
+		iResult = IFXCheckedImageByteCount(
+			uSrcWidth,
+			uDstHeight,
+			m_u8PixelSize,
+			&uTemporaryByteCount);
+		if (IFXFAILURE(iResult))
+			return iResult;
+		void* pAllocatedBuffer = NULL;
+		iResult = IFXAllocateCheckedImageBytes(
+			uTemporaryByteCount,
+			IFXAllocate,
+			&pAllocatedBuffer);
+		if (IFXFAILURE(iResult))
+			return iResult;
+		pTempBuffer = (U8*)pAllocatedBuffer;
 
 		// bilinear interpolate columns...
 		U8 *pTemp = pTempBuffer;
 		if (dest_height > src_height) {
 			for (cols = 0; cols < src_width; cols++) {
-				IFXTextureImageTools_BIVStretch(m_u8PixelSize, m_bHasAlpha, pTemp, dest_height, pSrc, src_height, src_width*m_u8PixelSize);
+				IFXTextureImageTools_BIVStretch(m_u8PixelSize, m_bHasAlpha, pTemp, dest_height, pSrc, src_height, src_row_bytes);
 				pSrc += m_u8PixelSize;
 				pTemp += m_u8PixelSize;
 			}
 		}
 		else  {
 			for (cols = 0; cols < src_width; cols++) {
-				IFXTextureImageTools_BIVShrink(m_u8PixelSize, m_bHasAlpha, pTemp, dest_height, pSrc, src_height, src_width*m_u8PixelSize);
+				IFXTextureImageTools_BIVShrink(m_u8PixelSize, m_bHasAlpha, pTemp, dest_height, pSrc, src_height, src_row_bytes);
 				pSrc += m_u8PixelSize;
 				pTemp += m_u8PixelSize;
 			}
@@ -1426,39 +1619,51 @@ IFXRESULT IFXAPI_CALLTYPE IFXTextureImageTools_ResizeImage(U8* pSrc, U8* pDest, 
 		pTemp = pTempBuffer;
 		for (rows = 0; rows < dest_height; rows++) {
 			IFXTextureImageTools_BIHStretch(m_u8PixelSize, m_bHasAlpha, pDest, dest_width, pTemp, src_width);
-			pTemp += (src_width*m_u8PixelSize);
-			pDest += (dest_width*m_u8PixelSize);
+			pTemp += src_row_bytes;
+			pDest += dest_row_bytes;
 		}
 	}
 	else
 	{
 		// horizontal first then vertical...
 		// allocate channel temporary space...
-		pTempBuffer = (U8*)IFXAllocate(src_height * dest_width*m_u8PixelSize);
-		if (!pTempBuffer)
-			return IFX_E_OUT_OF_MEMORY;
+		iResult = IFXCheckedImageByteCount(
+			uDstWidth,
+			uSrcHeight,
+			m_u8PixelSize,
+			&uTemporaryByteCount);
+		if (IFXFAILURE(iResult))
+			return iResult;
+		void* pAllocatedBuffer = NULL;
+		iResult = IFXAllocateCheckedImageBytes(
+			uTemporaryByteCount,
+			IFXAllocate,
+			&pAllocatedBuffer);
+		if (IFXFAILURE(iResult))
+			return iResult;
+		pTempBuffer = (U8*)pAllocatedBuffer;
 
 		// bilinear interpolate rows...
 		U8 *pTemp = pTempBuffer;
 
 		for (rows = 0; rows < src_height; rows++) {
 			IFXTextureImageTools_BIHShrink(m_u8PixelSize, m_bHasAlpha, pTemp, dest_width, pSrc, src_width);
-			pSrc += (src_width*m_u8PixelSize);
-			pTemp += (dest_width*m_u8PixelSize);
+			pSrc += src_row_bytes;
+			pTemp += dest_row_bytes;
 		}
 
 		// bilinear interpolate columns...
 		pTemp = pTempBuffer;
 		if (dest_height >= src_height) {
 			for (cols = 0; cols < dest_width; cols++) {
-				IFXTextureImageTools_BIVStretch(m_u8PixelSize, m_bHasAlpha, pDest, dest_height, pTemp, src_height, dest_width*m_u8PixelSize);
+				IFXTextureImageTools_BIVStretch(m_u8PixelSize, m_bHasAlpha, pDest, dest_height, pTemp, src_height, dest_row_bytes);
 				pDest += m_u8PixelSize;
 				pTemp += m_u8PixelSize;
 			}
 		}
 		else {
 			for (cols = 0; cols < dest_width; cols++) {
-				IFXTextureImageTools_BIVShrink(m_u8PixelSize, m_bHasAlpha, pDest, dest_height, pTemp, src_height, dest_width*m_u8PixelSize);
+				IFXTextureImageTools_BIVShrink(m_u8PixelSize, m_bHasAlpha, pDest, dest_height, pTemp, src_height, dest_row_bytes);
 				pDest += m_u8PixelSize;
 				pTemp += m_u8PixelSize;
 			}

@@ -76,23 +76,34 @@ public:
 IFXINLINE void IFXTQTBaseTriangle::GetBaseNeighbor (IFXTQTAddress::Direction usDirection, 
 				IFXTQTBaseTriangle	**ppBaseNeighbor, IFXTQTAddress::Direction *pOrientation)
 {
+	if (NULL == ppBaseNeighbor || NULL == pOrientation)
+		return;
+
+	*ppBaseNeighbor = NULL;
+	*pOrientation = IFXTQTAddress::UnDefined;
+	if (usDirection != IFXTQTAddress::Left &&
+		usDirection != IFXTQTAddress::Base &&
+		usDirection != IFXTQTAddress::Right)
+	{
+		return;
+	}
+
 	// Grab the base neighbor pointer:
 	*ppBaseNeighbor = m_pNeighbor[usDirection];
 
-    if (!*ppBaseNeighbor)
-        return;
+	if (!*ppBaseNeighbor)
+	{
+		return;
+	}
         
 	
 	// Determine orientation offset, if neighbor pointer is valid:
-	if (ppBaseNeighbor)
-	{
-		if (this == (*ppBaseNeighbor)->m_pNeighbor[IFXTQTAddress::Left])
-			*pOrientation = IFXTQTAddress::Left;
-		else if (this == (*ppBaseNeighbor)->m_pNeighbor[IFXTQTAddress::Base])
-			*pOrientation = IFXTQTAddress::Base;
-		else if (this == (*ppBaseNeighbor)->m_pNeighbor[IFXTQTAddress::Right])
-			*pOrientation = IFXTQTAddress::Right;
-	}
+	if (this == (*ppBaseNeighbor)->m_pNeighbor[IFXTQTAddress::Left])
+		*pOrientation = IFXTQTAddress::Left;
+	else if (this == (*ppBaseNeighbor)->m_pNeighbor[IFXTQTAddress::Base])
+		*pOrientation = IFXTQTAddress::Base;
+	else if (this == (*ppBaseNeighbor)->m_pNeighbor[IFXTQTAddress::Right])
+		*pOrientation = IFXTQTAddress::Right;
 }
 
 

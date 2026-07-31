@@ -20,10 +20,17 @@
 #include "IFXBitStreamX.h"
 #include "IFXTextureErrors.h"
 #include "IFXAutoRelease.h"
+#include "IFXImageSizeUtils.h"
 #include "IFXImportingCIDs.h"
 #include "IFXReadBufferX.h"
 
 // local functions for PNG
+struct IFXPngReadState
+{
+	png_bytep pCurrent;
+	size_t uRemaining;
+};
+
 static void png_read_data_fn(
 				png_structp png_ptr, 
 				png_bytep data, 
@@ -1233,8 +1240,13 @@ IFXRESULT CIFXImageTools::SplitColorChannels(
 		iResult = IFX_E_INVALID_POINTER;
 	if( NULL == ppColorChannels )
 		iResult = IFX_E_INVALID_POINTER;
+	if (NULL == m_pContinuationFormats ||
+		m_uContinuationImageCount > IFX_MAX_CONTINUATIONIMAGE_COUNT)
+	{
+		iResult = IFX_E_INVALID_RANGE;
+	}
 
-	if (m_uContinuationImageCount != 1) 
+	if (IFXSUCCESS(iResult) && m_uContinuationImageCount != 1)
 	{
 		U32 iImage, uIndex, uChannel;
 		U8	src_bpp = 0;
@@ -1243,21 +1255,31 @@ IFXRESULT CIFXImageTools::SplitColorChannels(
 		U32 SrcChannelIndex[IFX_MAX_CONTINUATIONIMAGE_COUNT][4];
 		U32 DstChannelCount[IFX_MAX_CONTINUATIONIMAGE_COUNT];  
 
+		for (iImage = 0; iImage < m_uContinuationImageCount; ++iImage)
+		{
+			ppColorChannels[iImage] = NULL;
+			pBufColorChannels[iImage] = NULL;
+		}
+
 		for ( iImage = 0; iImage <m_uContinuationImageCount; iImage++ )  
 		{
-			ppColorChannels[iImage] = 
-				(U8*) new U8 [ pImageInfo->m_width * 
-				pImageInfo->m_height * 
-				m_pContinuationFormats[iImage].m_bpp ];
-			if( NULL != ppColorChannels[iImage])
+			size_t uChannelByteCount = 0;
+			iResult = IFXCheckedImageByteCount(
+				pImageInfo->m_width,
+				pImageInfo->m_height,
+				m_pContinuationFormats[iImage].m_bpp,
+				&uChannelByteCount);
+			if (IFXFAILURE(iResult))
+				break;
+
+			ppColorChannels[iImage] = (U8*) new U8 [uChannelByteCount];
+			if(NULL == ppColorChannels[iImage])
 			{
-				//U32 sz = m_pContinuationFormats[iImage].m_bpp;
-				pBufColorChannels[iImage] = (U8*) ppColorChannels[iImage];
-				if(NULL == ppColorChannels[iImage])
-				{
-					iResult = IFX_E_OUT_OF_MEMORY;
-				}
+				iResult = IFX_E_OUT_OF_MEMORY;
+				break;
 			}
+
+			pBufColorChannels[iImage] = (U8*) ppColorChannels[iImage];
 		}
 
 		if(IFXSUCCESS(iResult)) 
@@ -1366,7 +1388,7 @@ IFXRESULT CIFXImageTools::SplitColorChannels(
 			for ( iImage = 0; iImage <m_uContinuationImageCount; iImage++ )  
 			{
 				if (  ppColorChannels[iImage]) 
-					delete (U8 *) ppColorChannels[iImage];
+					delete [] (U8 *) ppColorChannels[iImage];
 				ppColorChannels[iImage] = NULL;
 			}
 		}
@@ -1394,7 +1416,7 @@ IFXRESULT CIFXImageTools::MergeColorChannels(
   U32 uIndex=0;
   U8* pDest = NULL;
 
-  if( pChannelsSrc1 && NULL == pChannelInfoSrc1 )
+  if(NULL == pChannelInfoSrc1)
     iResult = IFX_E_INVALID_POINTER;
   // it is OK for (pChannelsSrc2 && NULL == pChannelInfoSrc2)
 
@@ -1407,11 +1429,18 @@ IFXRESULT CIFXImageTools::MergeColorChannels(
 	
 	pImageInfo->m_width  = pChannelInfoSrc1->m_width;
 	pImageInfo->m_height = pChannelInfoSrc1->m_height;
-	pImageInfo->m_size = ( pImageInfo->m_width * pImageInfo->m_height * chanNumber);
+	size_t uImageByteCount = 0;
+	iResult = IFXCheckedImageByteCount(
+		pImageInfo->m_width,
+		pImageInfo->m_height,
+		chanNumber,
+		&uImageByteCount);
+	if (IFXSUCCESS(iResult))
+		pImageInfo->m_size = (U32)uImageByteCount;
 
-	if (*ppImage == NULL) 
+	if (IFXSUCCESS(iResult) && *ppImage == NULL)
 	{
-		pDest = (U8*) new U8 [pImageInfo->m_size];
+		pDest = (U8*) new U8 [uImageByteCount];
 		if(NULL == pDest) 
 		{
 			iResult = IFX_E_OUT_OF_MEMORY;
@@ -1421,7 +1450,7 @@ IFXRESULT CIFXImageTools::MergeColorChannels(
 			*ppImage = pDest;
 		}
 	} 
-	else 
+	else if (IFXSUCCESS(iResult))
 	{
 		pDest = (U8*)*ppImage;
 	}
@@ -1897,6 +1926,11 @@ IFXRESULT CIFXImageTools::DecompressImageJPEG(
 	{
 		iResult = IFX_E_INVALID_POINTER;
 	}
+	else if (NULL == m_pContinuationFormats ||
+		contInd >= m_uContinuationImageCount)
+	{
+		iResult = IFX_E_INVALID_RANGE;
+	}
 	BOOL bNeedImageResize = FALSE;
 	//int  bpp = 0;
 
@@ -1968,20 +2002,45 @@ IFXRESULT CIFXImageTools::DecompressImageJPEG(
 
 			if (IFXSUCCESS(iResult) ) 
 			{
-				pImageInfo->m_size = 
-					cinfo.output_width * cinfo.output_height * cinfo.output_components;  
-				// resize the buffer
-				pDestBuffer = IFXReallocate( *ppDecompressedImage, pImageInfo->m_size);
-				if(NULL == pDestBuffer && pImageInfo->m_size != 0) 
+				size_t uDecodedByteCount = 0;
+				size_t uResizedByteCount = 0;
+				iResult = IFXCheckedImageByteCount(
+					(U32)cinfo.output_width,
+					(U32)cinfo.output_height,
+					(U32)cinfo.output_components,
+					&uDecodedByteCount);
+
+				if (IFXSUCCESS(iResult) && bNeedImageResize)
 				{
-					iResult = IFX_E_OUT_OF_MEMORY;
-				}				
-				if (bNeedImageResize) 
+					iResult = IFXCheckedImageByteCount(
+						pImageInfo->m_width,
+						pImageInfo->m_height,
+						m_pContinuationFormats[contInd].m_bpp,
+						&uResizedByteCount);
+				}
+				else if (IFXSUCCESS(iResult))
 				{
-					pOutput = IFXAllocate(
-									pImageInfo->m_width *
-									pImageInfo->m_height *
-									m_pContinuationFormats[contInd].m_bpp );
+					uResizedByteCount = uDecodedByteCount;
+				}
+
+				if (IFXSUCCESS(iResult))
+				{
+					pImageInfo->m_size = (U32)uDecodedByteCount;
+					iResult = IFXReallocateCheckedImageBytes(
+						*ppDecompressedImage,
+						uDecodedByteCount,
+						IFXReallocate,
+						&pDestBuffer);
+					if (IFXSUCCESS(iResult))
+						*ppDecompressedImage = pDestBuffer;
+				}
+
+				if (IFXSUCCESS(iResult) && bNeedImageResize)
+				{
+					iResult = IFXAllocateCheckedImageBytes(
+						uResizedByteCount,
+						IFXAllocate,
+						&pOutput);
 				}
 				// decompress the image - scan line by scan line
 				if(IFXSUCCESS(iResult))
@@ -1994,28 +2053,29 @@ IFXRESULT CIFXImageTools::DecompressImageJPEG(
 				{
 					iResult = IFXTextureImageTools_ResizeImage(
 										(U8*)pDestBuffer, (U8*)pOutput, 
-										cinfo.num_components, FALSE, 
-										cinfo.image_width, cinfo.image_height, 
+										cinfo.output_components, FALSE,
+										cinfo.output_width, cinfo.output_height,
 										pImageInfo->m_width, pImageInfo->m_height);
 	
 					if(IFXSUCCESS(iResult))
 					{	
 						IFXDeallocate(pDestBuffer);
-						pImageInfo->m_size = 
-							pImageInfo->m_width * 
-							pImageInfo->m_height * 
-							m_pContinuationFormats[contInd].m_bpp;
-						*ppDecompressedImage=(void*)pOutput;
+						pDestBuffer = NULL;
+						pImageInfo->m_size = (U32)uResizedByteCount;
+						*ppDecompressedImage = pOutput;
+						pOutput = NULL;
 					}
 				} 
-				else 
-				{
-					*ppDecompressedImage=(void*)pDestBuffer;
-				}
+
+				if (NULL != pOutput)
+					IFXDeallocate(pOutput);
 			} 
 
 			// clean up decompression object...
-			jpeg_finish_decompress( &cinfo);
+			if (IFXSUCCESS(iResult))
+				jpeg_finish_decompress( &cinfo);
+			else
+				jpeg_abort_decompress( &cinfo);
 			jpeg_destroy_decompress( &cinfo);
 		}  
 		else 
@@ -2806,239 +2866,301 @@ IFXRESULT CIFXImageTools::DecompressImagePng(
 								void* pCompressedData, STextureSourceInfo* pImageInfo, 
 								U32& contInd, void** ppDecompressedImage)
 {
-
-	IFXRESULT iResult = IFX_OK;
-	if(NULL == pCompressedData || NULL == pImageInfo || NULL == ppDecompressedImage )
+	if(NULL == pCompressedData ||
+		NULL == pImageInfo ||
+		NULL == ppDecompressedImage)
 	{
-		iResult =IFX_E_INVALID_POINTER;
+		return IFX_E_INVALID_POINTER;
+	}
+	if(NULL == m_pContinuationFormats ||
+		contInd >= m_uContinuationImageCount)
+	{
+		return IFX_E_INVALID_RANGE;
 	}
 
-	png_structp			png_ptr			= NULL;
-	png_infop			info_ptr		= NULL;
-	//png_voidp			user_error_ptr	= NULL;
-	png_error_ptr		user_error_fn	= NULL;
-	//png_error_ptr		user_warning_fn	= NULL;
-
-	png_uint_32			width_png, height_png;
-    int                 iBitDepth;
-    int                 iColorType;
-	png_byte*           pbImageData         = NULL; 
-	static png_byte   **ppbRowPointers		= NULL;
-
-	// will need resize if width and height in pImageInfo are 
-	// different from them in PNG data
-	BOOL				bNeedImageResize	= FALSE;
-
-	BOOL				bHasAlpha			= FALSE;
-
-    // first check the eight byte PNG signature - copressed image should start from it 
-    if (png_sig_cmp((png_bytep)pCompressedData, 0, 8))  
+	const size_t uCompressedByteCount = (size_t)pImageInfo->m_size;
+	if(uCompressedByteCount < 8 ||
+		uCompressedByteCount > IFX_U3D_IMAGE_MAX_DECODED_BYTES)
 	{
-		// not PNG header 
-	    IFXTRACE_CUSTOM(IFXRESULT_COMPONENT_IMAGE_TOOLS, IFXDEBUG_ERROR, 
+		return IFX_E_INVALID_RANGE;
+	}
+
+	// Check the signature only after confirming that eight input bytes exist.
+	if(png_sig_cmp((png_bytep)pCompressedData, 0, 8))
+	{
+		IFXTRACE_CUSTOM(IFXRESULT_COMPONENT_IMAGE_TOOLS, IFXDEBUG_ERROR,
 			L"DecompressImagePng: not PNG signature at image data block.\n");
 		return IFX_E_UNDEFINED;
-    }
-
-    // create the two png(-info) structures
-    png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL,
-      (png_error_ptr)user_error_fn, (png_error_ptr)NULL);
-
-	if (!png_ptr)
-	{
-        return IFX_E_UNDEFINED;
 	}
 
-    info_ptr = png_create_info_struct(png_ptr);
-    if (!info_ptr) 
+	IFXRESULT iResult = IFX_OK;
+	png_structp png_ptr = png_create_read_struct(
+		PNG_LIBPNG_VER_STRING,
+		NULL,
+		(png_error_ptr)NULL,
+		(png_error_ptr)NULL);
+	if(NULL == png_ptr)
+		return IFX_E_OUT_OF_MEMORY;
+
+	png_infop info_ptr = png_create_info_struct(png_ptr);
+	if(NULL == info_ptr)
 	{
-        png_destroy_read_struct(&png_ptr, NULL, NULL);
-        return IFX_E_UNDEFINED;
-    }
-	
-	// Set error handling.  
-	if (setjmp(png_jmpbuf(png_ptr))) 
+		png_destroy_read_struct(&png_ptr, NULL, NULL);
+		return IFX_E_OUT_OF_MEMORY;
+	}
+
+	void* volatile pImageAllocation = NULL;
+	void* volatile pRowsAllocation = NULL;
+	if(setjmp(png_jmpbuf(png_ptr)))
 	{
+		if(NULL != pRowsAllocation)
+			IFXDeallocate((void*)pRowsAllocation);
+		if(NULL != pImageAllocation)
+			IFXDeallocate((void*)pImageAllocation);
 		png_destroy_read_struct(&png_ptr, &info_ptr, (png_infopp)NULL);
+		return IFX_E_UNDEFINED;
+	}
+
+	IFXPngReadState readState;
+	readState.pCurrent = (png_bytep)pCompressedData;
+	readState.uRemaining = uCompressedByteCount;
+	png_set_read_fn(png_ptr, (png_voidp)&readState, png_read_data_fn);
+	png_read_info(png_ptr, info_ptr);
+
+	png_uint_32 width_png = 0;
+	png_uint_32 height_png = 0;
+	int iBitDepth = 0;
+	int iColorType = 0;
+	if(0 == png_get_IHDR(
+		png_ptr,
+		info_ptr,
+		&width_png,
+		&height_png,
+		&iBitDepth,
+		&iColorType,
+		NULL,
+		NULL,
+		NULL))
+	{
 		iResult = IFX_E_UNDEFINED;
-		return iResult;
 	}
 
-    // resize the destination buffer, size if stored as RGBA
-    pImageInfo->m_size = pImageInfo->m_width * pImageInfo->m_height * 4;
-	if( pImageInfo->m_size == 0) 
+	if(IFXSUCCESS(iResult) &&
+		(8 != iBitDepth ||
+		(iColorType != PNG_COLOR_TYPE_RGB &&
+		iColorType != PNG_COLOR_TYPE_RGB_ALPHA &&
+		iColorType != PNG_COLOR_TYPE_GRAY &&
+		iColorType != PNG_COLOR_TYPE_GRAY_ALPHA)))
 	{
-		png_destroy_read_struct(&png_ptr, &info_ptr, (png_infopp)NULL);
-        iResult = IFX_E_OUT_OF_MEMORY;
-		return iResult;
+		iResult = IFX_E_UNSUPPORTED;
 	}
 
-	png_bytep io_ptr = (png_bytep)(pCompressedData);
-	png_set_read_fn(png_ptr, (png_voidp)(&io_ptr), png_read_data_fn);
+	const U32 uChannelCount = (U32)png_get_channels(png_ptr, info_ptr);
+	BOOL bNeedImageResize =
+		pImageInfo->m_width != width_png ||
+		pImageInfo->m_height != height_png;
+	BOOL bHasAlpha =
+		iColorType == PNG_COLOR_TYPE_RGB_ALPHA ||
+		iColorType == PNG_COLOR_TYPE_GRAY_ALPHA;
 
-    // read all PNG info up to image data
-    png_read_info(png_ptr, info_ptr);
-	
-    // get width, height, bit-depth and color-type
-    png_get_IHDR(
-		png_ptr, info_ptr, &width_png, &height_png, 
-		&iBitDepth, &iColorType, NULL, NULL, NULL);
-	IFXASSERT(iBitDepth==8);
-	IFXASSERT( // this is temp for debugging 
-		iColorType==PNG_COLOR_TYPE_RGB || iColorType==PNG_COLOR_TYPE_RGB_ALPHA || 
-		iColorType==PNG_COLOR_TYPE_GRAY || iColorType==PNG_COLOR_TYPE_GRAY_ALPHA);  
-
-	if (pImageInfo->m_width != width_png || pImageInfo->m_height != height_png) 
+	if(IFXSUCCESS(iResult) && bNeedImageResize)
 	{
-	    IFXTRACE_CUSTOM(IFXRESULT_COMPONENT_IMAGE_TOOLS, IFXDEBUG_WARNING, 
-			L"DecompressImagePng: PNG image size (width and/or height) is different "
-			L"from size specified in image declaration block. Image will be resized.\n");
-		bNeedImageResize = TRUE;	
+		IFXTRACE_CUSTOM(IFXRESULT_COMPONENT_IMAGE_TOOLS, IFXDEBUG_WARNING,
+			L"DecompressImagePng: PNG dimensions differ from the declaration; "
+			L"the bounded image will be resized.\n");
 	}
 
-	if ( png_get_channels(png_ptr, info_ptr) != m_pContinuationFormats[contInd].m_bpp) 
+	if(IFXSUCCESS(iResult) &&
+		uChannelCount != m_pContinuationFormats[contInd].m_bpp)
 	{
-	    IFXTRACE_CUSTOM(IFXRESULT_COMPONENT_IMAGE_TOOLS, IFXDEBUG_WARNING, 
-			L"DecompressImagePng: PNG image channel number is different from one "
-			L"specified in image declaration block. Trying to handle...\n");
+		IFXTRACE_CUSTOM(IFXRESULT_COMPONENT_IMAGE_TOOLS, IFXDEBUG_WARNING,
+			L"DecompressImagePng: PNG channel count differs from the declaration.\n");
 
-		if (m_uContinuationImageCount==1) 
+		if(1 == m_uContinuationImageCount)
 		{
-		    IFXTRACE_CUSTOM(IFXRESULT_COMPONENT_IMAGE_TOOLS, IFXDEBUG_WARNING, 
-				L"DecompressImagePng: Channel number and image type specified in "
-				L"PNG image data will be used.\n");
-	
-			m_pContinuationFormats[contInd].m_bpp = png_get_channels(png_ptr, info_ptr);
-			switch (iColorType) 
+			m_pContinuationFormats[contInd].m_bpp = (U8)uChannelCount;
+			switch(iColorType)
 			{
-			case PNG_COLOR_TYPE_RGB: 
-				if (pImageInfo->m_imageType ==
-					IFXTextureObject::IFXTEXTUREMAP_FORMAT_RGBA32) 
+			case PNG_COLOR_TYPE_RGB:
+				if(pImageInfo->m_imageType ==
+					IFXTextureObject::IFXTEXTUREMAP_FORMAT_RGBA32)
 				{
-					pImageInfo->m_imageType = 
+					pImageInfo->m_imageType =
 						IFXTextureObject::IFXTEXTUREMAP_FORMAT_RGB24;
 				}
-				if (pImageInfo->m_imageType == 
-					IFXTextureObject::IFXTEXTUREMAP_FORMAT_BGRA32) 
+				if(pImageInfo->m_imageType ==
+					IFXTextureObject::IFXTEXTUREMAP_FORMAT_BGRA32)
 				{
-					pImageInfo->m_imageType = 
+					pImageInfo->m_imageType =
 						IFXTextureObject::IFXTEXTUREMAP_FORMAT_BGR24;
 				}
-				m_pContinuationFormats[contInd].m_uImageChannels ^= 
+				m_pContinuationFormats[contInd].m_uImageChannels ^=
 					IFXIMAGECHANNEL_ALPHA;
 				pImageInfo->m_blockChannels[contInd] ^= IFXIMAGECHANNEL_ALPHA;
 				break;
-			case PNG_COLOR_TYPE_RGB_ALPHA: 
-				if (pImageInfo->m_imageType == 
-					IFXTextureObject::IFXTEXTUREMAP_FORMAT_RGB24) 
+
+			case PNG_COLOR_TYPE_RGB_ALPHA:
+				if(pImageInfo->m_imageType ==
+					IFXTextureObject::IFXTEXTUREMAP_FORMAT_RGB24)
 				{
-					pImageInfo->m_imageType = 
+					pImageInfo->m_imageType =
 						IFXTextureObject::IFXTEXTUREMAP_FORMAT_RGBA32;
 				}
-				if (pImageInfo->m_imageType == 
-					IFXTextureObject::IFXTEXTUREMAP_FORMAT_BGR24) 
+				if(pImageInfo->m_imageType ==
+					IFXTextureObject::IFXTEXTUREMAP_FORMAT_BGR24)
 				{
-					pImageInfo->m_imageType = 
+					pImageInfo->m_imageType =
 						IFXTextureObject::IFXTEXTUREMAP_FORMAT_BGRA32;
 				}
-				m_pContinuationFormats[contInd].m_uImageChannels |= 
+				m_pContinuationFormats[contInd].m_uImageChannels |=
 					IFXIMAGECHANNEL_ALPHA;
 				pImageInfo->m_blockChannels[contInd] |= IFXIMAGECHANNEL_ALPHA;
 				break;
-			default: 
-				// once we get here - need to think if 
-				// this is right decision for other ...
-				IFXASSERT(0);
+
+			case PNG_COLOR_TYPE_GRAY:
+			case PNG_COLOR_TYPE_GRAY_ALPHA:
+				break;
+
+			default:
+				iResult = IFX_E_UNSUPPORTED;
 				break;
 			}
-		} 
-		else 
+		}
+		else
 		{
-			IFXTRACE_CUSTOM(IFXRESULT_COMPONENT_IMAGE_TOOLS, IFXDEBUG_ERROR, 
-			L"DecompressImagePng: channel number conflict could not be reslove.\n");
 			iResult = IFX_E_UNDEFINED;
 		}
 	}
 
-	if (IFXSUCCESS(iResult)) 
+	size_t uTightRowBytes = 0;
+	size_t uDecodedByteCount = 0;
+	size_t uTargetByteCount = 0;
+	png_size_t ulRowBytes = 0;
+	if(IFXSUCCESS(iResult))
 	{
-		if (iColorType==PNG_COLOR_TYPE_RGB_ALPHA || 
-			iColorType==PNG_COLOR_TYPE_GRAY_ALPHA) 
+		ulRowBytes = png_get_rowbytes(png_ptr, info_ptr);
+		if(ulRowBytes > (png_size_t)IFX_U3D_IMAGE_MAX_PITCH)
 		{
-			bHasAlpha = TRUE;
+			iResult = IFX_E_INVALID_RANGE;
 		}
-
-		// row_bytes is the width x number of channels
-		png_uint_32 ulRowBytes = png_get_rowbytes(png_ptr, info_ptr);
-
-		if ((pbImageData = 
-			(png_byte *) new png_byte [ulRowBytes * height_png ]) == NULL ) 
+		else
 		{
-			png_error(png_ptr, "PNG image : out of memory");
-			iResult = IFX_E_OUT_OF_MEMORY;
-		}
-		// and allocate memory for an array of row-pointers        
-
-		if (IFXSUCCESS(iResult)) 
-		{
-			if ((ppbRowPointers = (png_bytepp) new png_bytep [ height_png ]) == NULL ) 
+			iResult = IFXCheckedImagePitchByteCount(
+				(U32)width_png,
+				(U32)height_png,
+				uChannelCount,
+				(U32)ulRowBytes,
+				&uTightRowBytes,
+				&uDecodedByteCount);
+			if(IFXSUCCESS(iResult) &&
+				uTightRowBytes != (size_t)ulRowBytes)
 			{
-				png_error(png_ptr, "PNG image : out of memory");
-				iResult = IFX_E_OUT_OF_MEMORY;
+				iResult = IFX_E_UNSUPPORTED;
 			}
 		}
+	}
 
-		if (IFXSUCCESS(iResult)) 
+	if(IFXSUCCESS(iResult))
+	{
+		iResult = IFXCheckedImageByteCount(
+			pImageInfo->m_width,
+			pImageInfo->m_height,
+			uChannelCount,
+			&uTargetByteCount);
+		if(IFXSUCCESS(iResult))
+			pImageInfo->m_size = (U32)uTargetByteCount;
+	}
+
+	png_byte* pbImageData = NULL;
+	png_bytepp ppbRowPointers = NULL;
+	if(IFXSUCCESS(iResult))
+	{
+		void* pDecodedBuffer = NULL;
+		iResult = IFXAllocateCheckedImageBytes(
+			uDecodedByteCount,
+			IFXAllocate,
+			&pDecodedBuffer);
+		if(IFXSUCCESS(iResult))
 		{
-			// set the individual row-pointers to point at the correct offsets
-			U32 i;
-			for ( i = 0; i < height_png; i++) 
-			{			
-				ppbRowPointers[i] = pbImageData + (height_png - i - 1 ) * ulRowBytes;				
-			}
+			pImageAllocation = pDecodedBuffer;
+			pbImageData = (png_byte*)pDecodedBuffer;
+		}
+	}
 
-			// now we can go ahead and just read the whole image
-			png_read_image(png_ptr, ppbRowPointers);
-			
-			if (!bNeedImageResize)	
+	if(IFXSUCCESS(iResult))
+	{
+		size_t uRowPointerBytes = 0;
+		iResult = IFXCheckedMultiplySize(
+			(size_t)height_png,
+			sizeof(png_bytep),
+			&uRowPointerBytes);
+		if(IFXSUCCESS(iResult))
+		{
+			void* pRowBuffer = NULL;
+			iResult = IFXAllocateCheckedImageBytes(
+				uRowPointerBytes,
+				IFXAllocate,
+				&pRowBuffer);
+			if(IFXSUCCESS(iResult))
 			{
-				*ppDecompressedImage = pbImageData;
-			} 
-			else 
-			{
-				*ppDecompressedImage = 
-					IFXReallocate( *ppDecompressedImage, pImageInfo->m_size);
+				pRowsAllocation = pRowBuffer;
+				ppbRowPointers = (png_bytepp)pRowBuffer;
 			}
 		}
-		// read the additional chunks in the PNG file (not really needed)
+	}
+
+	if(IFXSUCCESS(iResult))
+	{
+		for(U32 i = 0; i < (U32)height_png; ++i)
+		{
+			ppbRowPointers[i] = pbImageData +
+				(size_t)(height_png - i - 1) * (size_t)ulRowBytes;
+		}
+
+		png_read_image(png_ptr, ppbRowPointers);
 		png_read_end(png_ptr, NULL);
 
-		if (IFXSUCCESS(iResult) && bNeedImageResize) 
+		if(bNeedImageResize)
 		{
-			iResult = IFXTextureImageTools_ResizeImage(
-							pbImageData, (U8*)(*ppDecompressedImage), 
-							png_get_channels(png_ptr, info_ptr), bHasAlpha, 
-							width_png, height_png, 
-							pImageInfo->m_width, pImageInfo->m_height);
-			if (!IFXSUCCESS(iResult)) 
+			void* pResizedBuffer = NULL;
+			iResult = IFXReallocateCheckedImageBytes(
+				*ppDecompressedImage,
+				uTargetByteCount,
+				IFXReallocate,
+				&pResizedBuffer);
+			if(IFXSUCCESS(iResult))
 			{
-				IFXTRACE_CUSTOM(IFXRESULT_COMPONENT_IMAGE_TOOLS, IFXDEBUG_ERROR, 
-					L"DecompressImagePng: Error at re-sizing image.\n");
+				*ppDecompressedImage = pResizedBuffer;
+				iResult = IFXTextureImageTools_ResizeImage(
+					pbImageData,
+					(U8*)pResizedBuffer,
+					(U8)uChannelCount,
+					bHasAlpha,
+					(U32)width_png,
+					(U32)height_png,
+					pImageInfo->m_width,
+					pImageInfo->m_height);
 			}
 		}
+		else
+		{
+			*ppDecompressedImage = pbImageData;
+			pImageAllocation = NULL;
+			pbImageData = NULL;
+		}
 	}
-        
-	/* clean up after the read, and free any memory allocated - REQUIRED */
-	png_destroy_read_struct(&png_ptr, &info_ptr, (png_infopp)NULL);
 
-	if (ppbRowPointers) 
+	if(NULL != pRowsAllocation)
 	{
-		delete [] ppbRowPointers;
+		IFXDeallocate((void*)pRowsAllocation);
+		pRowsAllocation = NULL;
 	}
-	if (bNeedImageResize && pbImageData ) 
+	if(NULL != pImageAllocation)
 	{
-		delete pbImageData;
+		IFXDeallocate((void*)pImageAllocation);
+		pImageAllocation = NULL;
 	}
+	png_destroy_read_struct(&png_ptr, &info_ptr, (png_infopp)NULL);
 	return iResult;
 }
 
@@ -3493,15 +3615,20 @@ static void png_flush(png_structp png_ptr)
 
 static void png_read_data_fn(png_structp png_ptr, png_bytep data, png_size_t length)
 {
-	IFXASSERT(length>0);
-	IFXASSERT(png_ptr!=0&&data!=NULL);
-	IFXASSERT(png_get_io_ptr(png_ptr)!=NULL);
-	png_bytepp pio_ptr = (png_bytepp)png_get_io_ptr(png_ptr);
-	IFXASSERT(*pio_ptr!=NULL);
+	IFXPngReadState* pReadState =
+		(IFXPngReadState*)png_get_io_ptr(png_ptr);
+	if(NULL == pReadState ||
+		NULL == pReadState->pCurrent ||
+		NULL == data ||
+		(size_t)length > pReadState->uRemaining)
+	{
+		png_error(png_ptr, "PNG image data is truncated");
+		return;
+	}
 
-	//copy from *(png_ptr->io_ptr) (compressed PNG image) to data
-	memcpy( data, *pio_ptr,  length );
-	*pio_ptr = *pio_ptr + length;
+	memcpy(data, pReadState->pCurrent, length);
+	pReadState->pCurrent += length;
+	pReadState->uRemaining -= (size_t)length;
 }
 
 void* CIFXImageTools::SwapImageToRGB(STextureSourceInfo* pImageInfo, void* pSrcImage) 

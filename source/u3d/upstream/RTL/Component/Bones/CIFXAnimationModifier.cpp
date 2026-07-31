@@ -698,6 +698,10 @@ void CIFXAnimationModifier::Setup(void)
 IFXRESULT CIFXAnimationModifier::CIFXMotionResourceManager::GetMotion(
 					I32 motionId,IFXMotion **ppMotion,IFXString *pSourcename)
 {
+	if(NULL == ppMotion)
+		return IFX_E_INVALID_POINTER;
+
+	*ppMotion = NULL;
 	if(pSourcename)
 		*pSourcename="Palette";
 
@@ -708,14 +712,16 @@ IFXRESULT CIFXAnimationModifier::CIFXMotionResourceManager::GetMotion(
 	IFXRESULT result=m_pMotionResourcePalette->GetResourcePtr(motionId,
 							IID_IFXMotionResource,(void**)&pMotionResource );
 
-	if(ppMotion)
-		*ppMotion=(IFXSUCCESS(result)) ? pMotionResource->GetMotionRef() : NULL;
+	*ppMotion=(IFXSUCCESS(result) && NULL != pMotionResource)
+		? pMotionResource->GetMotionRef()
+		: NULL;
 
 	if( NULL == *ppMotion ) // use default motion
 	{
 		result = m_pMotionResourcePalette->GetResourcePtr( 0, IID_IFXMotionResource, (void**)&pMotionResource );
-		if(ppMotion)
-			*ppMotion= (IFXSUCCESS(result)) ? pMotionResource->GetMotionRef() : NULL;
+		*ppMotion= (IFXSUCCESS(result) && NULL != pMotionResource)
+			? pMotionResource->GetMotionRef()
+			: NULL;
 	}
 
 	IFXRELEASE(pMotionResource);
