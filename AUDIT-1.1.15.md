@@ -2,8 +2,8 @@
 
 Audit date: 2026-07-31
 
-Decision: **GO for public release after the release-branch CodeQL gate, with
-the unsigned/no-Defender caveats below**
+Decision: **GO for public release, with the unsigned/no-Defender caveats
+below**
 
 This is an engineering and open-source-license assessment, not legal advice,
 indemnity, or a promise that no third party can ever make a claim.
@@ -19,8 +19,13 @@ bridge tests for overflow, excessive sizes, allocation failure, and truncated
 JPEG/PNG data.
 
 The seven previously release-blocking U3D CodeQL paths were reviewed against
-these changes. A fresh GitHub default-setup scan of the release branch remains
-the final publication gate and will be recorded here before merge.
+these changes. GitHub default setup then analyzed the exact release-candidate
+commit in [run 30630199425](https://github.com/simonsystem609/ExcelsisViewer/actions/runs/30630199425):
+C/C++, JavaScript/TypeScript, and Python all passed. C/C++ results fell from
+56 on 1.1.14 to 49 on 1.1.15, exactly matching the seven repairs. The PR ref
+reports zero alerts in both changed U3D texture files and both pointer paths.
+The separately documented, already-guarded nanoPRC NURBS alert remains visible;
+no source tree or vendor alerts were hidden or blanket-dismissed.
 
 ## Licensing and provenance
 
