@@ -8,6 +8,7 @@ $ErrorActionPreference = "Stop"
 $workspaceRoot = Split-Path -Parent $PSScriptRoot
 $upstreamRoot = Join-Path $PSScriptRoot "upstream"
 $bridgeSource = Join-Path $PSScriptRoot "bridge\u3d_app_export.cpp"
+$hardeningTestSource = Join-Path $PSScriptRoot "tests\image_size_utils_test.cpp"
 $buildRoot = Join-Path $workspaceRoot "tmp\u3d-build"
 if ([string]::IsNullOrWhiteSpace($RuntimeTarget)) {
     $ApplicationRoots = @(
@@ -39,6 +40,7 @@ $commitMarker = Join-Path $PSScriptRoot "UPSTREAM-COMMIT.txt"
 foreach ($requiredPath in @(
     $upstreamRoot,
     $bridgeSource,
+    $hardeningTestSource,
     $commitMarker,
     $cmake,
     $ninja,
@@ -86,6 +88,25 @@ $includeArguments = @(
     "-I$(Join-Path $upstreamRoot 'RTL\Platform\Include')",
     "-I$(Join-Path $upstreamRoot 'RTL\Platform\Win32\Common')"
 )
+$hardeningTestPath = Join-Path $buildRoot "u3d_image_size_tests.exe"
+$hardeningTestArguments = @(
+    "-std=gnu++14",
+    "-O2",
+    "-fstack-protector-strong"
+) + $includeArguments + @(
+    "-I$(Join-Path $upstreamRoot 'RTL\Component\Texture')",
+    $hardeningTestSource,
+    "-static-libgcc",
+    "-static-libstdc++",
+    "-Wl,--dynamicbase,--nxcompat",
+    "-o",
+    $hardeningTestPath
+)
+& $compiler @hardeningTestArguments
+if ($LASTEXITCODE -ne 0) { throw "U3D image-size hardening tests failed to compile." }
+& $hardeningTestPath
+if ($LASTEXITCODE -ne 0) { throw "U3D image-size hardening tests failed." }
+
 $bridgeArguments = @(
     "-std=gnu++14",
     "-O2",

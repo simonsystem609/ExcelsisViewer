@@ -14,3 +14,9 @@ corresponding-source archive can be rebuilt without Git metadata.
 The decoder runs behind the same AppContainer, Job Object, time, memory,
 process-count, input, output, cache, and scene-complexity boundaries used by
 the existing native 3D decoder.
+
+The local texture hardening also checks every decoded dimension, component
+count, pitch, multiplication, allocation, reallocation, and resize buffer.
+Current per-image limits are 32768 x 32768 pixels, one to four components,
+a 131072-byte pitch, and 256 MiB of decoded storage. `build.ps1` compiles and
+runs `tests/image_size_utils_test.cpp` before installing the runtime.
