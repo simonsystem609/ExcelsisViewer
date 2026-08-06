@@ -1,7 +1,7 @@
 # nanoPRC decoder and application bridge
 
 This directory contains the standards-based native 3D-PDF decoder used by
-ExcelsisView `1.1.15`.
+ExcelsisView `1.1.19`.
 
 ## Pinned upstream
 
@@ -40,7 +40,7 @@ The local bridge changes support large assemblies by:
 - RI-set `rep_items` are exported and instanced by the viewer
 - JSON is compact rather than pretty-printed
 
-## Application integration (1.1.15)
+## Application integration (1.1.19)
 
 `nano_prc_app_export.exe` now emits a small JSON product-tree manifest plus a
 compact binary position/index stream. This avoids materializing the large

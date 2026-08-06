@@ -1,27 +1,28 @@
 # ExcelsisView
 
-ExcelsisView 1.1.15 is an open-source Windows viewer for DXF, DWG, regular
+ExcelsisView 1.1.19 is an open-source Windows viewer for DXF, DWG, regular
 PDF, and supported PRC/U3D 3D PDF documents. Document processing is local,
 and native document parsers run behind Windows process-containment and
 resource limits.
 
 ## Download
 
-- [Windows installer](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.15/ExcelsisView-Setup-1.1.15.exe)
-- [Release notes and all assets](https://github.com/simonsystem609/ExcelsisViewer/releases/tag/excelsis-view-v1.1.15)
-- [Exact corresponding-source archive](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.15/SOURCE-ExcelsisView-1.1.15.zip)
+- [Windows installer](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.19/ExcelsisView-Setup-1.1.19.exe)
+- [Release notes and all assets](https://github.com/simonsystem609/ExcelsisViewer/releases/tag/excelsis-view-v1.1.19)
+- [Exact corresponding-source archive](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.19/SOURCE-ExcelsisView-1.1.19.zip)
 - [SHA-256 checksums](SHA256SUMS.txt)
-- [Licensing and security audit](AUDIT-1.1.15.md)
+- [Licensing and security audit](AUDIT-1.1.19.md)
 
-Version 1.1.15 hardens U3D JPEG/PNG texture dimensions, pitches, component
-counts, allocations, resize buffers, and render copies with checked limits.
-It also validates animation and subdivision output pointers before use and
-adds hostile native tests for overflow, excessive sizes, allocation failure,
-and truncated image data.
+Version 1.1.19 updates PDF.js to 6.2.108 and Electron to security-patched
+43.3.0. It retains the U3D hostile-input hardening and adds the format-specific
+icons, high-DPI source printing, shared print preview, and per-page automatic
+orientation work from versions 1.1.16 through 1.1.18. The public source build
+also now works without Git metadata while still verifying the pinned U3D
+commit marker.
 
 The installer and ExcelsisView binaries are currently unsigned, so Windows
 may show a SmartScreen warning. Microsoft Defender was disabled in the build
-environment, so no Defender scan is claimed. Kaspersky 21.25 with 2026-07-31
+environment, so no Defender scan is claimed. Kaspersky 21.26 with 2026-08-06
 bases scanned the exact release assets, unpacked payload, and expanded source
 with zero detections or suspicions. Verify the installer SHA-256 before running
 it.
@@ -33,7 +34,7 @@ contains the application source, the pinned modified nanoPRC source, the
 pinned modified U3D source, the LibreDWG source archive, license texts, and
 the scripts used to rebuild the release.
 
-From `source/ExcelsisView-1.1.15/app-asar-extract` on Windows with Node.js 24,
+From `source/ExcelsisView-1.1.19/app-asar-extract` on Windows with Node.js 24,
 npm, PowerShell, the documented native prerequisites, and Zig 0.16.0:
 
 ```powershell
@@ -42,7 +43,7 @@ npm run dist
 ```
 
 See
-[`source/ExcelsisView-1.1.15/app-asar-extract/SOURCE.md`](source/ExcelsisView-1.1.15/app-asar-extract/SOURCE.md)
+[`source/ExcelsisView-1.1.19/app-asar-extract/SOURCE.md`](source/ExcelsisView-1.1.19/app-asar-extract/SOURCE.md)
 for the complete build requirements.
 
 ## Project links
