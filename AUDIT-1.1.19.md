@@ -135,8 +135,44 @@ The ASAR is `51,532,578` bytes with SHA-256
   exercised on a disposable Windows machine.
 - Continue sustained fuzzing of PRC/U3D/DWG/thumbnail inputs and reduce
   inherited U3D warnings as upstream-compatible maintenance permits.
+- GitHub CodeQL retains the same 59 findings as the 1.1.15 public baseline:
+  47 C/C++ findings in pinned nanoPRC/U3D source (including upstream demos and
+  bundled compatibility code) and 12 `js/insecure-randomness` findings in the
+  vendored 3D-PDF runtime. This release introduced no alert-count increase.
+  Runtime-reachable findings should be triaged and fixed upstream-compatibly in
+  a later private-development build followed by the full native rebuild and
+  differential/hostile-input gates; changing pinned corresponding source at
+  the publication boundary was not considered a safe cosmetic fix.
 
 ## Post-publication verification
 
-The exact tag target, immutable release, downloaded-back assets, Pages
-deployment, and GitHub analysis results are recorded here after publication.
+- Pull request [#3](https://github.com/simonsystem609/ExcelsisViewer/pull/3)
+  passed C/C++, JavaScript/TypeScript, and Python CodeQL and was merged
+  normally. Release commit `a32824e21231a76695e7c3fb6f235bd17d838b8b` is the
+  exact target of annotated tag `excelsis-view-v1.1.19` (tag object
+  `4e90657480e23e6059ab9b72e57855475e4e4060`).
+- GitHub release `366440208` is published and immutable. Its twelve uploaded
+  assets have the expected names, sizes, and GitHub-reported SHA-256 digests.
+  A fresh independent download matched all twelve staged files byte-for-byte,
+  and the downloaded checksum manifest verified all eleven listed artifacts.
+- GitHub's signed release attestation verifies the tag and all twelve asset
+  digests. `gh release verify-asset` also verified each downloaded file
+  individually against that release attestation.
+- Default-branch CodeQL run
+  [31133171293](https://github.com/simonsystem609/ExcelsisViewer/actions/runs/31133171293)
+  passed all three language jobs. The 59 open alerts have the same rule counts
+  as the previous public baseline and their newest instances are at the release
+  commit; Dependabot and secret-scanning alert counts are zero.
+- Dependabot closed obsolete pull request
+  [#2](https://github.com/simonsystem609/ExcelsisViewer/pull/2) as
+  `dependency_removed`. Its one-time cleanup run then reported the deliberately
+  removed 1.1.15 manifest as missing; this is stale-update cleanup noise, not a
+  1.1.19 dependency finding.
+- Pages deployment
+  [31133170185](https://github.com/simonsystem609/ExcelsisViewer/actions/runs/31133170185)
+  succeeded at the release commit. The live
+  [project page](https://simonsystem609.github.io/ExcelsisViewer/) returned
+  HTTP 200 and exposed the 1.1.19 release, exact installer link, audit,
+  support/development-help content, separate Excelsis3D section, and Helper
+  cross-link. The installer URL returned HTTP 200 with content length
+  `117,456,685`.
