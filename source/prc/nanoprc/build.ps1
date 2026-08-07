@@ -99,7 +99,6 @@ $ZlibSources = @(
 ) | ForEach-Object { Join-Path $UpstreamRoot "thirdparty\zlib\$_" }
 
 $Optimization = if ($Configuration -eq "Debug") { "-O0" } else { "-O2" }
-$SourcePathMap = "-ffile-prefix-map=$ExperimentRoot=nanoPRC"
 $CommonArgs = @(
     "cc",
     "-std=c99",
@@ -108,7 +107,6 @@ $CommonArgs = @(
     # later bases and requires IEEE-754 double rounding after each operation.
     # Fused multiply-add contraction changes that chain on thin triangles.
     "-ffp-contract=off",
-    $SourcePathMap,
     "-fstack-protector-strong",
     "-fno-omit-frame-pointer",
     "-Wl,--dynamicbase",

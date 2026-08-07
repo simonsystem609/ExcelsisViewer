@@ -35,13 +35,11 @@ $ninja = Join-Path $mingwBin "ninja.exe"
 $compiler = Join-Path $mingwBin "g++.exe"
 $objdump = Join-Path $mingwBin "objdump.exe"
 $expectedCommit = "5c141d9f0d366357e2b7cf93af2eade284a334be"
-$commitMarker = Join-Path $PSScriptRoot "UPSTREAM-COMMIT.txt"
 
 foreach ($requiredPath in @(
     $upstreamRoot,
     $bridgeSource,
     $hardeningTestSource,
-    $commitMarker,
     $cmake,
     $ninja,
     $compiler,
@@ -56,7 +54,20 @@ foreach ($requiredPath in @(
     }
 }
 
-$actualCommit = (Get-Content -Raw -LiteralPath $commitMarker).Trim()
+$commitMarker = Join-Path $PSScriptRoot "UPSTREAM-COMMIT.txt"
+$gitCommand = Get-Command git -ErrorAction SilentlyContinue
+$hasGitMetadata = Test-Path -LiteralPath (Join-Path $upstreamRoot ".git")
+if ($hasGitMetadata -and $gitCommand) {
+    $actualCommit = (& git -C $upstreamRoot rev-parse HEAD).Trim()
+    if ($LASTEXITCODE -ne 0) {
+        throw "Could not read the U3D upstream Git commit."
+    }
+} else {
+    if (-not (Test-Path -LiteralPath $commitMarker)) {
+        throw "U3D source archive is missing its pinned commit marker: $commitMarker"
+    }
+    $actualCommit = (Get-Content -Raw -LiteralPath $commitMarker).Trim()
+}
 if ($actualCommit -ne $expectedCommit) {
     throw "U3D upstream source must remain pinned to $expectedCommit (found $actualCommit)."
 }
