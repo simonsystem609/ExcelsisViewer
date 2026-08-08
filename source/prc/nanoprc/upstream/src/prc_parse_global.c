@@ -20,6 +20,7 @@
 #include "prc_parse_common.h"
 #include "debug.h"
 
+#include "prc_stb_image_config.h"
 #define STB_IMAGE_IMPLEMENTATION
 /* Need to figure out how to pass the ctx here */
 //#define STBI_MALLOC(sz)           prc_malloc(sz)

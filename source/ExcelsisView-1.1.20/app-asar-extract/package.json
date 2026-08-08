@@ -1,0 +1,235 @@
+{
+  "name": "excelsisview",
+  "version": "1.1.20",
+  "description": "Excelsis DXF, DWG, and PDF viewer.",
+  "author": "Excelsis",
+  "license": "AGPL-3.0-or-later",
+  "main": "main.cjs",
+  "private": true,
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build:containment": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-process-guard.ps1",
+    "build:nanoprc": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File ..\\..\\prc\\nanoprc\\build.ps1 && node scripts/integrate-nanoprc.cjs && powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/package-nanoprc-source.ps1",
+    "build:u3d": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File ..\\..\\u3d\\build.ps1 && powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/package-u3d-source.ps1",
+    "build:shell": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-thumbnail-provider.ps1",
+    "sync:pdfjs": "node scripts/sync-pdfjs-runtime.cjs",
+    "build:3d-runtime": "node scripts/build-3d-runtime.mjs",
+    "build:pdf-runtime": "esbuild scripts/pdf-export-runtime-entry.mjs --bundle --format=esm --platform=browser --target=chrome120 --minify --legal-comments=eof --outfile=modules/3dpdf/vendor/pdf-edit/pdf-export-runtime.mjs",
+    "package:source": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/package-corresponding-source.ps1",
+    "test:workers": "node scripts/test-background-workers.mjs",
+    "test:3d-runtime": "node scripts/test-3d-runtime.mjs",
+    "test:u3d:hardening": "node scripts/test-u3d-hardening.cjs",
+    "test:pdf": "npm run sync:pdfjs && npm run build:3d-runtime && node scripts/test-3d-runtime.mjs && npm run build:pdf-runtime && node --experimental-vm-modules scripts/check-pdf-module.cjs && node scripts/test-3dpdf-navigation.mjs && node scripts/test-nanoprc-bridge.cjs && npm run test:u3d:hardening && node scripts/test-u3d-bridge.cjs && node scripts/test-regular-pdf.mjs && node scripts/test-pdf-print-layout.mjs && node scripts/test-pdf-viewer-interactions.cjs && node scripts/test-pdf-image-tools.mjs && node scripts/test-pdf-ocr-runtime.mjs && node scripts/test-pdf-export-runtime.mjs && node scripts/test-pdf-thumbnail-helper.cjs",
+    "test:nanoprc:private": "node scripts/test-nanoprc-private.cjs",
+    "test:containment": "node scripts/test-process-guard.cjs",
+    "test:dwg": "node scripts/test-dxf-encoding.cjs && node scripts/test-dxf-geometry.mjs && node scripts/test-dxf-coordinate-overlays.mjs && node scripts/test-dxf-contour-cleanup.mjs && node scripts/test-dxf-ui.mjs && node scripts/test-dwg-converter.cjs",
+    "test:icons": "node scripts/test-file-type-icons.cjs",
+    "test:shell": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-thumbnail-provider.ps1 -RunTests",
+    "audit:dependencies": "npm audit --audit-level=moderate",
+    "audit:security": "node scripts/audit-security.cjs",
+    "audit:shell": "node scripts/audit-thumbnail-provider.cjs",
+    "audit:package": "node scripts/audit-packaged-runtime.cjs",
+    "build:integrity": "node scripts/generate-external-integrity.cjs",
+    "dist": "npm run build:containment && npm run test:containment && npm run build:nanoprc && npm run build:u3d && npm run test:workers && npm run test:pdf && npm run test:dwg && npm run test:icons && npm run test:shell && npm run build:integrity && npm run audit:dependencies && npm run audit:security && npm run audit:shell && npm run package:source && electron-builder --win nsis && npm run audit:package"
+  },
+  "devDependencies": {
+    "@pdf-lib/fontkit": "1.1.1",
+    "@techstark/opencv-js": "4.11.0-release.1",
+    "@tesseract.js-data/eng": "1.0.0",
+    "@tesseract.js-data/hun": "1.0.0",
+    "buffer": "6.0.3",
+    "electron": "43.3.0",
+    "electron-builder": "26.15.3",
+    "esbuild": "0.25.12",
+    "pako": "2.1.0",
+    "pdf-lib": "1.17.1",
+    "pdfjs-dist": "6.2.108",
+    "resedit": "3.0.2",
+    "tesseract.js": "7.0.0",
+    "three": "0.160.0"
+  },
+  "overrides": {
+    "@electron/get": {
+      "undici": "7.29.0"
+    },
+    "brace-expansion": "5.0.9",
+    "fast-uri": "3.1.5",
+    "js-yaml": "4.3.1",
+    "node-gyp": {
+      "undici": "6.28.0"
+    },
+    "tar": "7.5.21"
+  },
+  "build": {
+    "appId": "local.excelsis.view",
+    "productName": "ExcelsisView",
+    "asar": true,
+    "electronFuses": {
+      "runAsNode": false,
+      "enableCookieEncryption": false,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "enableEmbeddedAsarIntegrityValidation": true,
+      "onlyLoadAppFromAsar": true,
+      "loadBrowserProcessSpecificV8Snapshot": false,
+      "grantFileProtocolExtraPrivileges": false
+    },
+    "npmRebuild": false,
+    "files": [
+      "main.cjs",
+      "dwg-converter.cjs",
+      "dxf-encoding.cjs",
+      "nano-prc-bridge.cjs",
+      "u3d-bridge.cjs",
+      "cache-limits.cjs",
+      "guarded-process.cjs",
+      "thumbnail-preload.cjs",
+      "preload.cjs",
+      "batch-print-preload.cjs",
+      "print-document-preload.cjs",
+      "external-integrity.json",
+      "DISTRIBUTION-RISK-ACCEPTANCE.md",
+      "LICENSE.txt",
+      "README.md",
+      "SOURCE.md",
+      "THIRD_PARTY_NOTICES.md",
+      "package.json",
+      "launcher/**/*",
+      "modules/**/*",
+      "!modules/3dpdf/native/nano_prc_app_export.exe",
+      "!modules/3dpdf/native/u3d/**"
+    ],
+    "extraResources": [
+      {
+        "from": "build/icon-dxf-256.png",
+        "to": "build/icon-dxf-256.png"
+      },
+      {
+        "from": "build/icon-dxf.ico",
+        "to": "build/icon-dxf.ico"
+      },
+      {
+        "from": "build/icon-file-dxf-256.png",
+        "to": "build/icon-file-dxf-256.png"
+      },
+      {
+        "from": "build/icon-file-dxf.ico",
+        "to": "build/icon-file-dxf.ico"
+      },
+      {
+        "from": "build/icon-file-dwg-256.png",
+        "to": "build/icon-file-dwg-256.png"
+      },
+      {
+        "from": "build/icon-file-dwg.ico",
+        "to": "build/icon-file-dwg.ico"
+      },
+      {
+        "from": "build/icon-file-pdf-256.png",
+        "to": "build/icon-file-pdf-256.png"
+      },
+      {
+        "from": "build/icon-file-pdf.ico",
+        "to": "build/icon-file-pdf.ico"
+      },
+      {
+        "from": "native/process-guard.exe",
+        "to": "native/process-guard.exe"
+      },
+      {
+        "from": "modules/3dpdf/native/nano_prc_app_export.exe",
+        "to": "native/nano_prc_app_export.exe"
+      },
+      {
+        "from": "modules/3dpdf/native/u3d",
+        "to": "native/u3d"
+      },
+      {
+        "from": "shell/thumbnail-provider/bin/x64/ExcelsisDxfThumbnailProvider.dll",
+        "to": "shell/ExcelsisDxfThumbnailProvider.dll"
+      },
+      {
+        "from": "third_party/licenses",
+        "to": "third_party/licenses"
+      },
+      {
+        "from": "third_party/libredwg",
+        "to": "third_party/libredwg",
+        "filter": [
+          "**/*",
+          "!libredwg-0.14.8492-source.tar.gz"
+        ]
+      },
+      {
+        "from": "LICENSE.txt",
+        "to": "LICENSE.txt"
+      },
+      {
+        "from": "README.md",
+        "to": "README.md"
+      },
+      {
+        "from": "SOURCE.md",
+        "to": "SOURCE.md"
+      },
+      {
+        "from": "THIRD_PARTY_NOTICES.md",
+        "to": "THIRD_PARTY_NOTICES.md"
+      },
+      {
+        "from": "DISTRIBUTION-RISK-ACCEPTANCE.md",
+        "to": "DISTRIBUTION-RISK-ACCEPTANCE.md"
+      }
+    ],
+    "directories": {
+      "output": "../dist-1.1.20",
+      "buildResources": "build"
+    },
+    "afterPack": "scripts/after-pack.cjs",
+    "fileAssociations": [
+      {
+        "ext": "dxf",
+        "name": "DXF Drawing",
+        "description": "DXF Drawing",
+        "icon": "build/icon-file-dxf.ico",
+        "role": "Editor"
+      },
+      {
+        "ext": "dwg",
+        "name": "DWG Drawing",
+        "description": "DWG Drawing",
+        "icon": "build/icon-file-dwg.ico",
+        "role": "Viewer"
+      },
+      {
+        "ext": "pdf",
+        "name": "PDF Document",
+        "description": "PDF Document",
+        "icon": "build/icon-file-pdf.ico",
+        "role": "Viewer"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon-dxf.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "runAfterFinish": false,
+      "license": "LICENSE.txt",
+      "include": "build/installer.nsh",
+      "artifactName": "ExcelsisView-Setup-${version}.exe"
+    }
+  },
+  "allowScripts": {
+    "electron@43.3.0": true,
+    "electron-winstaller@5.4.0": false,
+    "esbuild@0.25.12": true,
+    "tesseract.js@7.0.0": false
+  }
+}

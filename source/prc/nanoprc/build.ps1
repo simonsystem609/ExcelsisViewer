@@ -99,10 +99,18 @@ $ZlibSources = @(
 ) | ForEach-Object { Join-Path $UpstreamRoot "thirdparty\zlib\$_" }
 
 $Optimization = if ($Configuration -eq "Debug") { "-O0" } else { "-O2" }
+$DebugInformation = if ($Configuration -eq "Debug") { "-g" } else { "-g0" }
+$SourcePrefixMap = "-ffile-prefix-map=$ExperimentRoot=nanoPRC"
+$DebugPrefixMap = "-fdebug-prefix-map=$ExperimentRoot=nanoPRC"
+$MacroPrefixMap = "-fmacro-prefix-map=$ExperimentRoot=nanoPRC"
 $CommonArgs = @(
     "cc",
     "-std=c99",
     $Optimization,
+    $DebugInformation,
+    $SourcePrefixMap,
+    $DebugPrefixMap,
+    $MacroPrefixMap,
     # PRC predictive tessellation reinjects every reconstructed point into
     # later bases and requires IEEE-754 double rounding after each operation.
     # Fused multiply-add contraction changes that chain on thin triangles.
@@ -131,6 +139,7 @@ $JsonExporterSources = @(
 $QuickStartSource = Join-Path $UpstreamRoot "demos\quick_start\src\main.c"
 $TeapotWriteSource = Join-Path $UpstreamRoot "demos\teapot_write\src\teapot_write.c"
 $ProbeSource = Join-Path $ExperimentRoot "probe.c"
+$StbImageHardeningTestSource = Join-Path $ExperimentRoot "tests\stb_image_hardening_test.c"
 
 & $Zig @CommonArgs @CoreSources @ZlibSources @JsonExporterSources `
     "-o" (Join-Path $BuildRoot "nano_prc_app_export.exe")
@@ -158,10 +167,38 @@ if ($LASTEXITCODE -ne 0) {
     throw "nanoPRC probe build failed with exit code $LASTEXITCODE"
 }
 
+$StbImageHardeningTestPath = Join-Path $BuildRoot "stb_image_hardening_test.exe"
+$StbImageHardeningTestArgs = @(
+    "cc",
+    "-std=c99",
+    $Optimization,
+    $DebugInformation,
+    $SourcePrefixMap,
+    $DebugPrefixMap,
+    $MacroPrefixMap,
+    "-fstack-protector-strong",
+    "-Wl,--dynamicbase",
+    "-Wl,--nxcompat",
+    "-Wl,--high-entropy-va",
+    "-I$(Join-Path $UpstreamRoot 'src')",
+    $StbImageHardeningTestSource,
+    "-o",
+    $StbImageHardeningTestPath
+)
+& $Zig @StbImageHardeningTestArgs
+if ($LASTEXITCODE -ne 0) {
+    throw "nanoPRC stb_image hardening tests failed to compile."
+}
+& $StbImageHardeningTestPath
+if ($LASTEXITCODE -ne 0) {
+    throw "nanoPRC stb_image hardening tests failed."
+}
+
 Get-Item -LiteralPath `
     (Join-Path $BuildRoot "nano_prc_app_export.exe"), `
     (Join-Path $BuildRoot "nano_prc_json_export.exe"), `
     (Join-Path $BuildRoot "nano_prc_teapot_write.exe"), `
     (Join-Path $BuildRoot "nano_prc_quick_start.exe"), `
-    (Join-Path $BuildRoot "nano_prc_probe.exe") |
+    (Join-Path $BuildRoot "nano_prc_probe.exe"), `
+    $StbImageHardeningTestPath |
     Select-Object FullName, Length, LastWriteTime

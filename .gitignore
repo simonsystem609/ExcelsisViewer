@@ -1,5 +1,13 @@
 **/node_modules/
 **/.zig-cache/
+source/prc/nanoprc/.zig-global-cache/
+source/prc/nanoprc/.zig-local-cache/
+source/prc/nanoprc/build/
+source/tmp/
+source/ExcelsisView-*/app-asar-extract/native/obj/
+source/ExcelsisView-*/app-asar-extract/shell/thumbnail-provider/bin/
+source/ExcelsisView-*/app-asar-extract/shell/thumbnail-provider/obj/
+source/ExcelsisView-*/app-asar-extract/third_party/source/app/
 **/zig-cache/
 **/trash/
 dist-*/
