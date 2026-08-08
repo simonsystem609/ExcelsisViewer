@@ -150,6 +150,30 @@ The ASAR is `51,671,351` bytes with SHA-256
 
 ## Post-publication verification
 
-This section remains pending until the branch has passed GitHub CodeQL and
-release CI, has been merged normally, and the immutable release, attestations,
-download hashes, and Pages deployment have been independently verified.
+- Pull request [#4](https://github.com/simonsystem609/ExcelsisViewer/pull/4)
+  passed all three CodeQL language jobs and was merged normally. Release commit
+  `f74eb74fdd8b01717b219fe8920bdbc28ff84082` is the exact target of annotated
+  tag `excelsis-view-v1.1.20` (tag object
+  `2b858aefab0446e4c17b56e22883fc622e8b4fbd`).
+- GitHub release `367248698` is published and immutable. Its 12 uploaded assets
+  have the expected names, sizes, and GitHub-reported SHA-256 digests. A fresh
+  independent download matched all 12 staged files byte-for-byte, and the
+  downloaded checksum manifest verified all 11 listed artifacts.
+- GitHub's signed release attestation verifies the tag and all 12 asset
+  digests. `gh release verify-asset` also verified each independently
+  downloaded file against that release attestation.
+- Default-branch CodeQL runs
+  [31266916305](https://github.com/simonsystem609/ExcelsisViewer/actions/runs/31266916305)
+  and
+  [31267696053](https://github.com/simonsystem609/ExcelsisViewer/actions/runs/31267696053)
+  passed. After publication, open CodeQL, Dependabot, and secret-scanning alert
+  counts were all zero. The final triage consists of 21 shipped findings fixed
+  in source and 38 findings dismissed individually with target-specific
+  evidence; no blanket query suppression was added.
+- Pages deployment
+  [31266915778](https://github.com/simonsystem609/ExcelsisViewer/actions/runs/31266915778)
+  succeeded at the release commit. The live
+  [project page](https://simonsystem609.github.io/ExcelsisViewer/) returned
+  HTTP 200 and exposed the 1.1.20 release, exact installer link, audit, separate
+  Excelsis3D section, development-help content, and Helper cross-link. The
+  independently downloaded installer is exactly `117,449,395` bytes.
