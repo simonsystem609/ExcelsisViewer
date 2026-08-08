@@ -1316,6 +1316,8 @@ prc_parse_compressed_control_points(prc_context *ctx, prc_bit_state *bit_state,
     uint32_t num_bits_for_rest, uint32_t num_control_points_u,
     uint32_t num_control_points_v, prc_compressed_control_points *data)
 {
+    size_t interior_count;
+
     /* num_control_points_u/v are derived from file-controlled knot
        multiplicities and can be 0 (making num_control_points_u - 1 wrap to
        UINT32_MAX) or large enough that (num_control_points_u - 1) *
@@ -1331,6 +1333,8 @@ prc_parse_compressed_control_points(prc_context *ctx, prc_bit_state *bit_state,
         prc_error(ctx, PRC_ERROR_PARSE, "Invalid NURBS control point counts\n");
         return PRC_ERROR_PARSE;
     }
+    interior_count = (size_t)(num_control_points_u - 1) *
+        (size_t)(num_control_points_v - 1);
 
     /* Here is p[0][0] */
     data->p00 = prc_parse_3d_vector(ctx, bit_state);
@@ -1371,7 +1375,7 @@ prc_parse_compressed_control_points(prc_context *ctx, prc_bit_state *bit_state,
 
     /* Now the interior points */
     data->ccpt_interior = (prc_interior_compressed_control_points *)prc_calloc(
-        ctx, (num_control_points_u - 1) * (num_control_points_v - 1),
+        ctx, interior_count,
         sizeof(prc_interior_compressed_control_points));
     if (!data->ccpt_interior)
     {
@@ -1382,7 +1386,8 @@ prc_parse_compressed_control_points(prc_context *ctx, prc_bit_state *bit_state,
     {
         for (uint32_t j = 0; j < num_control_points_v - 1; j++)
         {
-            uint32_t index = i * (num_control_points_v - 1) + j;
+            size_t index = (size_t)i * (size_t)(num_control_points_v - 1) +
+                (size_t)j;
             int code = prc_parse_interior_compressed_control_points(ctx, bit_state,
                 num_bits_for_rest, &data->ccpt_interior[index]);
             if (code < 0)

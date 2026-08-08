@@ -1,0 +1,141 @@
+@font-face{font-family:"Excelsis Liberation Sans";src:url("./vendor/pdf-edit/fonts/LiberationSans-Regular.ttf") format("truetype");font-style:normal;font-weight:400}
+  @font-face{font-family:"Excelsis Liberation Sans";src:url("./vendor/pdf-edit/fonts/LiberationSans-Bold.ttf") format("truetype");font-style:normal;font-weight:700}
+  @font-face{font-family:"Excelsis Liberation Sans";src:url("./vendor/pdf-edit/fonts/LiberationSans-Italic.ttf") format("truetype");font-style:italic;font-weight:400}
+  @font-face{font-family:"Excelsis Liberation Sans";src:url("./vendor/pdf-edit/fonts/LiberationSans-BoldItalic.ttf") format("truetype");font-style:italic;font-weight:700}
+  @font-face{font-family:"Excelsis Liberation Serif";src:url("./vendor/pdf-edit/fonts/LiberationSerif-Regular.ttf") format("truetype");font-style:normal;font-weight:400}
+  @font-face{font-family:"Excelsis Liberation Serif";src:url("./vendor/pdf-edit/fonts/LiberationSerif-Bold.ttf") format("truetype");font-style:normal;font-weight:700}
+  @font-face{font-family:"Excelsis Liberation Serif";src:url("./vendor/pdf-edit/fonts/LiberationSerif-Italic.ttf") format("truetype");font-style:italic;font-weight:400}
+  @font-face{font-family:"Excelsis Liberation Serif";src:url("./vendor/pdf-edit/fonts/LiberationSerif-BoldItalic.ttf") format("truetype");font-style:italic;font-weight:700}
+  @font-face{font-family:"Excelsis Liberation Mono";src:url("./vendor/pdf-edit/fonts/LiberationMono-Regular.ttf") format("truetype");font-style:normal;font-weight:400}
+  @font-face{font-family:"Excelsis Liberation Mono";src:url("./vendor/pdf-edit/fonts/LiberationMono-Bold.ttf") format("truetype");font-style:normal;font-weight:700}
+  @font-face{font-family:"Excelsis Liberation Mono";src:url("./vendor/pdf-edit/fonts/LiberationMono-Italic.ttf") format("truetype");font-style:italic;font-weight:400}
+  @font-face{font-family:"Excelsis Liberation Mono";src:url("./vendor/pdf-edit/fonts/LiberationMono-BoldItalic.ttf") format("truetype");font-style:italic;font-weight:700}
+  :root{color-scheme:dark;--bg:#120f10;--panel:#1b1718;--line:#4b292f;--text:#f1edef;--muted:#aa9da1;--accent:#be4d5c;--selected:#642832}
+  *{box-sizing:border-box}
+  html,body{height:100%;overflow:hidden}
+  body{margin:0;display:flex;flex-direction:column;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
+  header{min-height:54px;padding:9px 14px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;flex-wrap:wrap;flex:none}
+  header b{font-weight:600}
+  .muted{color:var(--muted);font-size:13px}
+  #workspace{min-height:0;overflow:hidden;flex:1;display:grid;grid-template-columns:minmax(230px,300px) minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
+  #treePanel{min-width:0;min-height:0;overflow:hidden;border-right:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column}
+  .panel-title{height:44px;padding:0 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
+  .panel-title strong{font-size:13px;font-weight:600}
+  #selectionCount{font-size:11px;color:var(--muted)}
+  .tree-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:7px;border-bottom:1px solid var(--line)}
+  .tree-actions button{padding:5px 3px;font-size:11px;white-space:nowrap}
+  .opacity-controls{display:grid;gap:6px;padding:8px 10px;border-bottom:1px solid var(--line)}
+  .opacity-controls label{display:grid;grid-template-columns:52px minmax(0,1fr) 42px;align-items:center;gap:7px;color:var(--muted);font-size:11px}
+  .opacity-controls input{width:100%;accent-color:var(--accent)}
+  .opacity-controls output{text-align:right;color:var(--text);font-variant-numeric:tabular-nums}
+  #componentTree{min-height:0;flex:1 1 0;overflow:auto;scrollbar-gutter:stable;padding:6px 0 18px;font-size:12px;user-select:none}
+  #componentTree ul{list-style:none;margin:0;padding:0}
+  #componentTree ul ul{padding-left:15px}
+  .tree-row{height:25px;display:grid;grid-template-columns:22px minmax(0,1fr);align-items:center;border-left:2px solid transparent}
+  .tree-row:hover{background:#2d1d21}
+  .tree-row.selected{background:var(--selected);border-left-color:#d66a78}
+  .tree-row.partial{border-left-color:#86434d}
+  .tree-row.direct-selected{background:#873541;border-left-color:#f08a97}
+  .tree-row.hidden{color:#747e8d}
+  .tree-row.deleted{text-decoration:line-through;color:#69717d}
+  .tree-toggle,.tree-label{border:0;background:transparent;border-radius:0;padding:0;color:inherit;text-align:left;height:25px;min-width:0}
+  .tree-toggle{font-family:ui-monospace,Consolas,monospace;text-align:center}
+  .tree-toggle:disabled{cursor:default;color:transparent}
+  .tree-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tree-empty{padding:18px 12px;color:var(--muted);text-align:center}
+  #drop{min-width:0;min-height:0;border:1.5px dashed transparent;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;background:#f7eded}
+  #drop.drag{border-color:#9a5f68;background:#f2e2e4}
+  #cv{position:absolute;inset:0;width:100%;height:100%;display:none}
+  .hint{text-align:center;color:#9aa3b2;padding:24px}
+  .hint b{color:#cdd3dc}
+  button,label.btn,select{background:#241b1d;border:1px solid #573139;color:#f1edef;border-radius:6px;padding:6px 10px;font-size:13px;cursor:pointer}
+  button:hover,label.btn:hover{background:#352127}
+  button[aria-pressed="true"]{background:#672b36;border-color:#a34b59}
+  button:disabled{opacity:.45;cursor:default}
+  #stats{min-width:160px;flex:1;font-size:12px;color:#9aa3b2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .state{font-size:11px;color:#8fd19e;border:1px solid #31533a;border-radius:999px;padding:3px 8px;white-space:nowrap}
+  .state.read-only{color:#ffd28a;border-color:#765623}
+  [hidden]{display:none!important}
+  .view-controls{display:flex;align-items:center;gap:6px;min-width:0}
+  .view-controls input,.view-controls select{height:31px}
+  .view-controls input[type=number]{width:58px;background:#241b1d;border:1px solid #573139;color:#f1edef;border-radius:6px;padding:5px 7px}
+  .view-controls input[type=search]{width:150px;background:#241b1d;border:1px solid #573139;color:#f1edef;border-radius:6px;padding:5px 8px}
+  .pdf-save-split{position:relative;display:inline-flex;align-items:stretch;gap:0;height:31px;flex:none}
+  .pdf-save-split>#pdfSave{height:31px;border-radius:6px 0 0 6px;border-right:0}
+  .pdf-save-split>#pdfSaveMenuButton{height:31px;min-width:27px;padding:5px 7px;border-radius:0 6px 6px 0}
+  .pdf-save-menu{position:absolute;z-index:50;left:0;top:calc(100% + 4px);min-width:124px;padding:4px;border:1px solid #573139;border-radius:6px;background:#1b1718;box-shadow:0 8px 22px #000a}
+  .pdf-save-menu button{display:block;width:100%;border:0;padding:7px 9px;text-align:left;white-space:nowrap;background:transparent}
+  .pdf-save-menu button:hover{background:#352127}
+  #pdfWorkspace{grid-column:1/-1;min-width:0;min-height:0;display:grid;grid-template-columns:180px minmax(0,1fr);background:#33282a}
+  #pdfSidebar{min-width:0;min-height:0;overflow:auto;background:var(--panel);border-right:1px solid var(--line);padding:9px 7px 18px}
+  #pdfThumbnails{display:grid;gap:10px}
+  .pdf-thumb{display:grid;gap:5px;justify-items:center;width:100%;padding:6px;border:1px solid transparent;border-radius:5px;background:transparent;color:var(--muted)}
+  .pdf-thumb:hover{background:#352127}
+  .pdf-thumb.current{background:var(--selected);border-color:#a34b59;color:var(--text)}
+  .pdf-thumb canvas{display:block;max-width:130px;background:white;box-shadow:0 1px 5px #0008}
+  .pdf-thumb span{font-size:11px}
+  #pdfScroller{min-width:0;min-height:0;overflow:auto;scrollbar-gutter:stable;background:#33282a;padding:24px 28px}
+  #pdfPages{display:grid;justify-items:center;gap:20px;min-width:min-content}
+  .pdf-page{position:relative;flex:none;background:white;box-shadow:0 3px 16px #0008;overflow:hidden;contain:layout paint}
+  .pdf-page-surface{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+  .pdf-page canvas{display:block;width:100%;height:100%}
+  .pdf-page-loading{position:absolute;z-index:5;inset:0;display:grid;place-items:center;color:#6e6467;font-size:12px;background:#fff}
+  #pdfEditorBar{min-height:43px;flex:none;display:flex;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid var(--line);background:var(--panel);overflow-x:auto}
+  #pdfEditorBar .editor-separator{width:1px;height:25px;flex:none;background:var(--line)}
+  #pdfEditorBar input[type=text]{width:210px;height:31px;background:#241b1d;border:1px solid #573139;color:var(--text);border-radius:5px;padding:5px 8px}
+  #pdfEditorBar input[type=number]{width:62px;height:31px;background:#241b1d;border:1px solid #573139;color:var(--text);border-radius:5px;padding:5px 7px}
+  #pdfEditorBar input[type=color]{width:34px;height:31px;padding:3px;border:1px solid #573139;border-radius:5px;background:#241b1d}
+  #pdfEditorBar input[type=range]{width:92px;accent-color:var(--accent)}
+  #pdfEditorBar select{height:31px;padding:5px 7px}
+  #pdfFontFamily{width:76px}
+  #pdfFontVariant{width:104px}
+  .pdf-character-spacing-control{height:31px;display:inline-flex;align-items:center;gap:5px;padding-left:6px;border:1px solid #573139;border-radius:5px;background:#241b1d;color:var(--muted);font-size:11px;white-space:nowrap}
+  .pdf-character-spacing-control input[type=number]{width:56px!important;height:29px!important;border:0!important;border-left:1px solid #573139!important;border-radius:0!important}
+  .pdf-character-spacing-control:has(input:disabled){opacity:.45}
+  .pdf-text-color-control{height:31px;display:inline-flex;align-items:center;gap:5px;padding-left:6px;border:1px solid #573139;border-radius:5px;background:#241b1d;color:var(--muted);font-size:11px;white-space:nowrap}
+  .pdf-text-color-control input[type=color]{width:29px!important;height:29px!important;border:0!important;border-left:1px solid #573139!important;border-radius:0!important}
+  .pdf-text-color-control output{min-width:48px;padding-right:6px;color:var(--text);font-family:ui-monospace,Consolas,monospace;font-size:10px;text-transform:uppercase}
+  .pdf-text-color-control:has(input:disabled){opacity:.45}
+  #pdfEditorBar.read-only{opacity:.62}
+  #pdfObjectKind{min-width:76px;color:var(--muted);font-size:11px;text-transform:capitalize;white-space:nowrap}
+  .pdf-editor-layer{position:absolute;z-index:2;inset:0;pointer-events:none;overflow:hidden}
+  .pdf-editor-layer.region-mode{pointer-events:auto;cursor:crosshair}
+  .pdf-editor-layer.region-mode .pdf-native-hit,.pdf-editor-layer.region-mode .pdf-edit-object{pointer-events:none}
+  .pdf-native-hit,.pdf-edit-patch,.pdf-edit-object,.pdf-region-selection{position:absolute;left:0;top:0;transform-origin:0 0}
+  .pdf-native-hit{pointer-events:auto;margin:0;padding:0;border:1px solid transparent;border-radius:0;background:transparent;opacity:0}
+  .pdf-native-hit.native-image{z-index:1}
+  .pdf-native-hit.native-text{z-index:6}
+  .pdf-native-hit:hover{opacity:1;border-color:#c84f5f;background:#be4d5c18}
+  .pdf-native-hit.native-image:hover{border-style:dashed}
+  .pdf-native-hit.native-image.materialized,.pdf-native-hit.interaction-bypass{pointer-events:none}
+  .pdf-edit-patch{z-index:1;pointer-events:none;display:block}
+  .pdf-edit-object{z-index:2;pointer-events:auto;border:0;outline:1px solid transparent;cursor:default}
+  .pdf-edit-object.text-object{z-index:4}
+  .pdf-edit-object.text-object.inline-editing{z-index:7}
+  .pdf-edit-object.move-armed{cursor:move}
+  .pdf-edit-object:hover{outline-color:#d36a77}
+  .pdf-edit-object.selected{outline-color:#e55265;box-shadow:0 0 0 1px #fff9}
+  .pdf-edit-object.crop-mode{outline:2px dashed #ffbf47;box-shadow:0 0 0 1px #201400}
+  .pdf-edit-object.crop-mode .pdf-resize-handle{width:9px;height:9px;background:#ffbf47;border-color:#5c3b00}
+  .pdf-edit-object.inactive .pdf-edit-content{visibility:hidden}
+  .pdf-edit-object.inline-editing .pdf-edit-content{visibility:hidden}
+  .pdf-edit-content{position:absolute;inset:0;overflow:hidden}
+  .pdf-edit-content svg{display:block;width:100%;height:100%;overflow:hidden}
+  .pdf-edit-object.text-object .pdf-edit-content,
+  .pdf-edit-object.text-object .pdf-edit-content svg{overflow:visible}
+  .pdf-edit-content img{display:block;width:100%;height:100%;object-fit:fill;pointer-events:none}
+  .pdf-edit-text{width:100%;height:100%;overflow:hidden;white-space:pre-wrap;overflow-wrap:anywhere;font-family:"Liberation Sans",Arial,sans-serif}
+  .pdf-inline-text-editor{position:absolute;z-index:10;box-sizing:border-box;min-width:1px;margin:0;padding:0;border:1px solid #e55265;border-radius:2px;outline:1px solid #fff9;background:#fffefded;caret-color:#8e1022;overflow:hidden;resize:none;white-space:pre}
+  .pdf-resize-handle{position:absolute;display:none;width:7px;height:7px;border:1px solid #7c202d;background:#f7edef}
+  .pdf-edit-object.selected .pdf-resize-handle{display:block}
+  .handle-nw{left:-4px;top:-4px;cursor:nwse-resize}.handle-n{left:calc(50% - 3px);top:-4px;cursor:ns-resize}.handle-ne{right:-4px;top:-4px;cursor:nesw-resize}
+  .handle-e{right:-4px;top:calc(50% - 3px);cursor:ew-resize}.handle-se{right:-4px;bottom:-4px;cursor:nwse-resize}.handle-s{left:calc(50% - 3px);bottom:-4px;cursor:ns-resize}
+  .handle-sw{left:-4px;bottom:-4px;cursor:nesw-resize}.handle-w{left:-4px;top:calc(50% - 3px);cursor:ew-resize}
+  .pdf-region-selection{z-index:4;border:1px solid #e55265;background:#be4d5c22;pointer-events:none}
+  #pdfObjectMenu{position:fixed;z-index:40;min-width:150px;padding:5px;border:1px solid #70404a;border-radius:6px;background:#211a1c;box-shadow:0 8px 24px #0008}
+  #pdfObjectMenu[hidden]{display:none}
+  #pdfObjectMenu button{display:block;width:100%;text-align:left}
+  #pdfSearchState{min-width:42px;text-align:center;color:var(--muted);font-size:11px}
+  input[type=file]{display:none}
+  @media(max-width:900px){#workspace{grid-template-columns:220px minmax(0,1fr)}.muted{display:none}.tree-actions{grid-template-columns:repeat(2,1fr)}#pdfWorkspace{grid-template-columns:145px minmax(0,1fr)}#pdfScroller{padding:18px 14px}.view-controls input[type=search]{width:110px}#pdfEditorBar input[type=text]{width:150px}}
+  @media print{header,#pdfEditorBar,#treePanel,#drop,#pdfSidebar{display:none!important}html,body,#workspace,#pdfWorkspace,#pdfScroller{height:auto!important;overflow:visible!important;background:white!important}#pdfWorkspace{display:block!important}.pdf-page{break-after:page;box-shadow:none;margin:0 auto 8mm}.pdf-page-loading{display:none!important}.pdf-native-hit,.pdf-resize-handle{display:none!important}.pdf-edit-object{border:0!important;box-shadow:none!important}}

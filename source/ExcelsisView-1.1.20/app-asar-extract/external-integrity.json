@@ -1,0 +1,66 @@
+{
+  "format": "Excelsis external runtime integrity 1",
+  "version": "1.1.20",
+  "files": [
+    {
+      "path": "native/nano_prc_app_export.exe",
+      "bytes": 937472,
+      "sha256": "3c46d36639140b976ef017c64e61094f52a8930aa5f5454f6eb1dd771cf3639a"
+    },
+    {
+      "path": "native/process-guard.exe",
+      "bytes": 257536,
+      "sha256": "04992285f0efbfd7938606490f8592ef532bfafda2296488f17ad1f84a6469b5"
+    },
+    {
+      "path": "native/u3d/IFXCore.dll",
+      "bytes": 5103451,
+      "sha256": "8beee143ca17e8d2605bab7e716de9afd3ad1bca0ea436b3ce0e2262bb439b3d"
+    },
+    {
+      "path": "native/u3d/IFXImporting.dll",
+      "bytes": 989624,
+      "sha256": "37df5a60e08ddf8e8df0f656aa6b750184cbab0e7c78c226b945b5a9713ff338"
+    },
+    {
+      "path": "native/u3d/libwinpthread-1.dll",
+      "bytes": 65955,
+      "sha256": "f6ad1378f098c1229be8e44bf22a9cc76c06a5d1630290d9be43f203430894cb"
+    },
+    {
+      "path": "native/u3d/u3d_app_export.exe",
+      "bytes": 3157841,
+      "sha256": "af12cd8490212e6b43f3e86a6213857b3b2855b6e2df2432015e73bd658a9233"
+    },
+    {
+      "path": "shell/ExcelsisDxfThumbnailProvider.dll",
+      "bytes": 308224,
+      "sha256": "1a79f6acb7db8e285deb2737534d7275cc9c79112b851797c94b612c6c8a2b5d"
+    },
+    {
+      "path": "third_party/libredwg/dwg2dxf.exe",
+      "bytes": 335290,
+      "sha256": "6272c62d1b8f25ce54b8df6f352736eb0c093612876558cb7dd926856a52662f"
+    },
+    {
+      "path": "third_party/libredwg/libiconv-2.dll",
+      "bytes": 1136529,
+      "sha256": "ff31fa811f9c07cc7fdaa68c9e8bca3a7b4fdf6e0a079a58175ea58ba139c7ae"
+    },
+    {
+      "path": "third_party/libredwg/libpcre2-16-0.dll",
+      "bytes": 653924,
+      "sha256": "3e8dbd40f92e96ae24f7386bd129fb055865da8f55f2fb03eb7744315976942f"
+    },
+    {
+      "path": "third_party/libredwg/libpcre2-8-0.dll",
+      "bytes": 717955,
+      "sha256": "a499fb8a7eff453d6e4f0842576bc5171d40a1505d8f7f13fff6cee51b738a62"
+    },
+    {
+      "path": "third_party/libredwg/libredwg-0.dll",
+      "bytes": 31191336,
+      "sha256": "24b5c252aa9de88218d6a05788e8cccc53ca752840d1dcc87786dc51557836bf"
+    }
+  ]
+}

@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ExcelsisView</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app">
+    <header class="toolbar">
+      <div class="file-actions">
+        <div id="saveSplit" class="save-split">
+          <button id="saveBtn" title="Save current DXF">Save</button>
+          <button
+            id="saveMenuBtn"
+            class="save-menu-toggle"
+            type="button"
+            title="More save options"
+            aria-label="More save options"
+            aria-haspopup="menu"
+            aria-controls="saveMenu"
+            aria-expanded="false"
+          >&#9662;</button>
+          <div id="saveMenu" class="save-menu" role="menu" hidden>
+            <button id="saveAsBtn" type="button" role="menuitem">Save As...</button>
+          </div>
+        </div>
+        <button id="discardBtn" title="Discard unsaved changes and reload the file">Discard Changes</button>
+        <button id="mirrorBtn" title="Save a mirrored sibling DXF beside the current file">Mirror</button>
+        <button id="scaleBtn" title="Save a scaled sibling DXF beside the current file">Scale</button>
+        <button id="rotateBtn" title="Rotate 90 degrees clockwise around the drawing center; save the result with Save or Save As">Rotate</button>
+      </div>
+      <div class="view-actions">
+        <button id="dissolveBtn" title="Dissolve selected closed contour into selectable lines and arcs">Dissolve</button>
+        <button id="rebuildBtn" title="Rebuild recognized contours from dissolved raw entities">Rebuild</button>
+        <button id="fixOuterContourBtn" title="Repair a noisy mesh-outline DXF by rebuilding the outside contour">Fix Outer Contour</button>
+        <button id="removeChamferFilletBtn" title="Conservatively remove narrow chamfer/fillet strips while keeping the outermost exterior edge and innermost hole edges">Remove Chamfer/Fillet</button>
+        <button id="fitBtn" title="Fit drawing to view">Fit</button>
+        <button id="showOriginalBtn" title="Overlay the original outline on top of this fixed DXF (enabled only when a _fixed/_fixedAL DXF is open)">Show Original</button>
+      </div>
+      <div class="mode-actions" role="group" aria-label="Mode">
+        <span class="mode-label">Mode:</span>
+        <button class="mode active selection-mode" data-mode="select" title="Select and edit features and entities">Selection Edit</button>
+        <button class="mode measure-mode" data-mode="measure" title="Measure point to point with snapping">Measure</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="viewport">
+        <canvas id="canvas"></canvas>
+        <div id="hud" class="hud">Open a DXF folder or files.</div>
+        <div id="snapBadge" class="snap-badge"></div>
+      </section>
+      <aside class="panel mode-selection">
+        <section class="panel-section">
+          <h2>File</h2>
+          <div id="fileName" class="file-name">No file open</div>
+          <div id="dirtyState" class="state">Clean</div>
+          <div id="lockState" class="state">Writable</div>
+          <div id="modeState" class="mode-state selection">Selection Edit Mode</div>
+        </section>
+        <section class="panel-section">
+          <h2>Selection</h2>
+          <div id="selectionInfo" class="info">Nothing selected.</div>
+        </section>
+        <section class="panel-section measure-section">
+          <h2>Measure</h2>
+          <div id="measureInfo" class="info">Pick two snapped points.</div>
+        </section>
+        <section class="panel-section feature-section">
+          <h2>Features</h2>
+          <div id="featureList" class="feature-list"></div>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="pager">
+      <button id="prevBtn" title="Previous DXF">Previous</button>
+      <div id="fileCounter">0 / 0</div>
+      <button id="nextBtn" title="Next DXF">Next</button>
+    </footer>
+  </div>
+  <div id="appVersion" class="app-version"></div>
+
+  <dialog id="mirrorDialog" class="modal">
+    <div class="modal-card">
+      <div class="modal-heading">
+        <h2>Mirror DXF</h2>
+      </div>
+      <p class="modal-note">
+        Creates a sibling <strong>_mirror.dxf</strong> file in the same folder and loads it after saving.
+      </p>
+      <div class="mirror-options">
+        <button id="mirrorLeftRightBtn" class="mirror-option" type="button">
+          <span>Left / Right</span>
+          <small>Flip across the vertical centerline</small>
+        </button>
+        <button id="mirrorTopBottomBtn" class="mirror-option" type="button">
+          <span>Top / Bottom</span>
+          <small>Flip across the horizontal centerline</small>
+        </button>
+      </div>
+      <div class="modal-actions">
+        <button id="mirrorCancelBtn" type="button">Cancel</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="scaleDialog" class="modal">
+    <div class="modal-card">
+      <div class="modal-heading">
+        <h2>Scale DXF</h2>
+      </div>
+      <p class="modal-note">
+        Creates a sibling <strong>_scaled.dxf</strong> file in the same folder and loads it after saving.
+        Scaling is anchored at the drawing origin (0,0).
+      </p>
+
+      <div id="scaleModeChooser" class="repair-method-options">
+        <button id="scaleModeXYBtn" class="repair-method-option" type="button">
+          <span>Independent X / Y</span>
+          <small>Set separate horizontal and vertical scale factors</small>
+        </button>
+        <button id="scaleModeLineBtn" class="repair-method-option" type="button">
+          <span>Along a line</span>
+          <small>Pick a line in the drawing and scale the whole file so it matches a target length</small>
+        </button>
+        <button id="scaleModeUniformBtn" class="repair-method-option" type="button">
+          <span>Uniform</span>
+          <small>Scale everything by one factor, keeping proportions</small>
+        </button>
+      </div>
+
+      <fieldset id="scaleXYFieldset" class="modal-fieldset" hidden>
+        <legend>Independent X / Y</legend>
+        <div class="number-row">
+          <span>Scale X (%)</span>
+          <input id="scaleXInput" type="number" value="100" step="0.1" min="0.001">
+        </div>
+        <div class="number-row">
+          <span>Scale Y (%)</span>
+          <input id="scaleYInput" type="number" value="100" step="0.1" min="0.001">
+        </div>
+      </fieldset>
+
+      <fieldset id="scaleLineFieldset" class="modal-fieldset" hidden>
+        <legend>Along a line</legend>
+        <p id="scaleLineHint" class="modal-hint">Click "Pick line", then click a straight line in the drawing.</p>
+        <button id="scalePickLineBtn" type="button">Pick line</button>
+        <div id="scaleLinePickedInfo" class="modal-hint" hidden></div>
+        <div class="number-row">
+          <span>New length (mm)</span>
+          <input id="scaleLineLengthInput" type="number" step="0.001" min="0.001" disabled>
+        </div>
+      </fieldset>
+
+      <fieldset id="scaleUniformFieldset" class="modal-fieldset" hidden>
+        <legend>Uniform</legend>
+        <div class="number-row">
+          <span>Scale factor (%)</span>
+          <input id="scaleUniformInput" type="number" value="100" step="0.1" min="0.001">
+        </div>
+      </fieldset>
+
+      <div class="modal-actions">
+        <button id="scaleBackBtn" type="button" hidden>Back</button>
+        <button id="scaleApplyBtn" type="button" hidden>Apply</button>
+        <button id="scaleCancelBtn" type="button">Cancel</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="outerRepairMethodDialog" class="modal">
+    <div class="modal-card">
+      <div class="modal-heading">
+        <h2>Fix Outer Contour</h2>
+      </div>
+      <p class="modal-note">
+        Choose how the outside contour is rebuilt. The original DXF stays unchanged.
+      </p>
+      <div class="repair-method-options">
+        <button id="outerRepairHdBtn" class="repair-method-option" type="button">
+          <span>High-definition contour</span>
+          <small>Dense polyline closest to the mesh outline. Saves <strong>_fixed.dxf</strong></small>
+        </button>
+        <button id="outerRepairArcLineBtn" class="repair-method-option" type="button">
+          <span>Arc &amp; line contour</span>
+          <small>Longer lines and arcs on the original outline (within 0.1&nbsp;mm). Saves <strong>_fixedAL.dxf</strong></small>
+        </button>
+      </div>
+      <fieldset id="arcLineAdvancedFieldset" class="modal-fieldset arc-line-advanced">
+        <legend>Arc &amp; line options</legend>
+        <div class="slider-row">
+          <span>Simplify features</span>
+          <input id="lineArcSimplifySlider" type="range" min="0" max="10" step="0.5" value="0">
+          <output id="lineArcSimplifyOutput">off</output>
+        </div>
+        <p class="modal-hint">Collapses lines/arcs shorter than this into a single sharp vertex (the neighbouring features are extended to meet). Higher values keep only the large-scale shape; 0 keeps every detail.</p>
+      </fieldset>
+      <div class="modal-actions">
+        <button id="outerRepairMethodCancelBtn" type="button">Cancel</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="outerRepairDialog" class="modal">
+    <div class="modal-card">
+      <div class="modal-heading">
+        <h2>Fix Outer Contour</h2>
+      </div>
+      <p id="outerRepairOutputNote" class="modal-note">
+        Creating a sibling output file beside the original.
+      </p>
+      <div class="progress-wrap" aria-live="polite">
+        <div class="progress-header">
+          <span id="outerRepairStatus">Preparing...</span>
+          <span id="outerRepairPercent">0%</span>
+        </div>
+        <progress id="outerRepairProgress" max="100" value="0"></progress>
+      </div>
+      <div id="outerRepairSummary" class="modal-summary">Detecting contours...</div>
+      <label class="modal-toggle">
+        <input id="outerRepairCompareToggle" type="checkbox" checked>
+        Show original vs fixed overlay after repair
+      </label>
+    </div>
+  </dialog>
+
+  <dialog id="cleanupDialog" class="modal">
+    <div class="modal-card">
+      <div class="modal-heading">
+        <h2>Remove Chamfer/Fillet</h2>
+      </div>
+      <div class="progress-wrap" aria-live="polite">
+        <div class="progress-header">
+          <span id="cleanupStatus">Analyzing contours...</span>
+        </div>
+        <progress id="cleanupProgress"></progress>
+      </div>
+      <div id="cleanupSummary" class="modal-summary">
+        Looking for proven narrow offset strips. The drawing remains editable while this runs.
+      </div>
+      <label class="modal-toggle cleanup-relaxed-toggle">
+        <input id="cleanupRelaxedToggle" type="checkbox">
+        Less-safe mode: include complex bridged outer networks
+      </label>
+      <p class="modal-hint">
+        This also handles branched offset exports only when at least four matching
+        short bridges isolate one unique global outer contour. Review before saving.
+      </p>
+      <div class="modal-actions">
+        <button id="cleanupCancelBtn" type="button" disabled>Cancel</button>
+        <button id="cleanupApplyBtn" type="button" disabled>Remove detected strips</button>
+      </div>
+    </div>
+  </dialog>
+
+
+  <script src="./vendor/concaveman.global.js"></script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
