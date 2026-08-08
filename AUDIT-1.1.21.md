@@ -2,8 +2,8 @@
 
 Audit date: 2026-08-08
 
-Decision: **GO for GitHub review and publication only if the protected-branch
-CodeQL checks pass, with the unsigned/no-Defender caveats below**
+Decision: **GO - published as an immutable, attested, remotely verified
+GitHub Release, with the unsigned/no-Defender caveats below**
 
 This is an engineering and open-source-license assessment, not legal advice,
 indemnity, or a promise that no third party can ever make a claim.
@@ -133,5 +133,34 @@ The ASAR is `51,671,735` bytes with SHA-256
 
 ## Post-publication verification
 
-Pending protected-branch review, required CodeQL checks, immutable release
-publication, independent asset download, alert review, and live Pages checks.
+- PR [#5](https://github.com/simonsystem609/ExcelsisViewer/pull/5) merged
+  normally after protected CodeQL run `31274889548` passed C/C++,
+  JavaScript/TypeScript, and Python. Release commit
+  `ec93709358af23dad4cea25e424652d8c0c3cd81` contains the audited source and
+  site; the feature commit is
+  `e57750c30c1ea41f4d6e79c24a38042dbaa1b340`.
+- Annotated tag `excelsis-view-v1.1.21` is object
+  `7089215e8c69974d70c32954722306353161339e` and dereferences to the exact
+  release commit.
+- GitHub Release ID `367289918` is non-draft, non-prerelease, latest, and
+  immutable with all 12 intended assets. Before publication, GitHub's recorded
+  names, sizes, and SHA-256 digests matched the audited staging set; all 12
+  draft assets were independently downloaded, all bytes matched, and the
+  downloaded checksum manifest verified its 11 listed payloads. After
+  publication, all 12 unauthenticated public asset URLs returned HTTP 200.
+- GitHub's signed in-toto release attestation uses predicate
+  `https://in-toto.io/attestation/release/v0.2` and was decoded and checked: it
+  covers the exact annotated-tag object and all 12 exact asset SHA-256 values.
+- Main-branch Pages run `31275151457` and `Push on main` run `31275152356`
+  passed for the release commit. The HTTPS Pages site is built, returns the
+  1.1.21 installer link, and retains the Helper cross-link and separate
+  Excelsis3D plans/development-help section.
+- GitHub reports zero open CodeQL, Dependabot, and secret-scanning alerts.
+- Viewer `main` now requires a pull request, an up-to-date branch, the three
+  language-specific CodeQL `Analyze` checks, and conversation resolution.
+  Administrator bypass, force pushes, and branch deletion are disabled.
+  Actions must be pinned to full-length commit SHAs.
+- Independent remote-download evidence is preserved under
+  `C:\GITHUB\viewer-1.1.21-remote-verify-20260808`; intake and final staging
+  evidence are under `C:\GITHUB\viewer-1.1.21-intake-20260808` and
+  `C:\GITHUB\viewer-1.1.21-final-20260808`.
