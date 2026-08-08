@@ -1,9 +1,9 @@
 # ExcelsisView corresponding source
 
-ExcelsisView 1.1.21 is licensed under the GNU Affero General Public License
+ExcelsisView 1.1.22 is licensed under the GNU Affero General Public License
 version 3 or later (AGPL-3.0-or-later). The complete
 application source is supplied beside the installer as
-`SOURCE-ExcelsisView-1.1.21.zip`. It
+`SOURCE-ExcelsisView-1.1.22.zip`. It
 includes `package.json`, `package-lock.json`, `main.cjs`, the preload scripts,
 `modules/`, `launcher/`, native source, Explorer integration source, build
 scripts, exact third-party notices, and the pinned source tarballs for the
@@ -44,8 +44,8 @@ Requirements:
   `tools/zig-0.16.0/zig-x86_64-windows-0.16.0/zig.exe` relative to the
   extracted source workspace, on `PATH`, or selected with `EXCELSIS_ZIG`
 
-Extract `SOURCE-ExcelsisView-1.1.21.zip`, then from
-`ExcelsisView-1.1.21-source/ExcelsisView-1.1.21/app-asar-extract`:
+Extract `SOURCE-ExcelsisView-1.1.22.zip`, then from
+`ExcelsisView-1.1.22-source/ExcelsisView-1.1.22/app-asar-extract`:
 
 ```powershell
 npm ci

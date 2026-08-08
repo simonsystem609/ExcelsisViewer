@@ -48,7 +48,7 @@ const pdfLoaders = [
 ];
 const pkg = JSON.parse(read("package.json"));
 
-assert.equal(pkg.version, "1.1.21");
+assert.equal(pkg.version, "1.1.22");
 assert.equal(pkg.devDependencies.electron, "43.3.0");
 assert.equal(pkg.devDependencies["pdfjs-dist"], "6.2.108");
 assert.equal(pkg.devDependencies.three, "0.160.0");
@@ -341,7 +341,7 @@ assert.doesNotMatch(
 );
 assert.match(
   sourceDocument,
-  /SOURCE-ExcelsisView-1\.1\.21\.zip/,
+  /SOURCE-ExcelsisView-1\.1\.22\.zip/,
   "The exact installer-adjacent application source is not documented.",
 );
 assert.match(
