@@ -17,6 +17,21 @@ for (const id of ["saveBtn", "saveMenuBtn", "saveMenu", "saveAsBtn", "rotateBtn"
 assert.match(html, /id=["']saveMenu["'][^>]*role=["']menu["'][^>]*hidden/i);
 assert.match(styles, /\.save-split\s*\{[\s\S]{0,250}position:\s*relative/);
 assert.match(styles, /\.save-menu-toggle\s*\{[\s\S]{0,180}width:\s*24px/);
+assert.match(
+  styles,
+  /\.toolbar\s*\{[\s\S]{0,420}overflow-x:\s*auto/,
+  "The DXF toolbar must contain narrow-window overflow instead of clipping controls.",
+);
+assert.match(
+  styles,
+  /\.toolbar button,[\s\S]{0,100}\.toolbar \.mode-label\s*\{[\s\S]{0,100}white-space:\s*nowrap/,
+  "DXF toolbar labels must remain on one line when the window narrows.",
+);
+assert.match(
+  styles,
+  /@media\s*\(max-width:\s*1400px\)[\s\S]{0,520}\.toolbar button\s*\{[\s\S]{0,100}padding-inline:\s*8px/,
+  "The DXF toolbar must compact before horizontal overflow is needed.",
+);
 assert.match(application, /saveAsBtn\.addEventListener\(["']click["'],\s*saveFileAs\)/);
 assert.match(application, /desktopApi\?\.saveAs/);
 assert.match(preload, /saveAs:\s*\(filePath,\s*text\)\s*=>\s*ipcRenderer\.invoke\(["']fs:save-dxf-as["']/);
@@ -74,6 +89,7 @@ assert.match(
 
 console.log(JSON.stringify({
   splitSaveMenu: true,
+  responsiveToolbar: true,
   dxfOnlySaveDialog: true,
   relaxedCleanupToggle: true,
   savedBodyCenteredRotation: true,

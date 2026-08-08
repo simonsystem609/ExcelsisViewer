@@ -111,12 +111,24 @@ input {
   padding: 8px 10px;
   background: var(--panel);
   border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .toolbar > div {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex: 0 0 auto;
+}
+
+.toolbar button,
+.toolbar .mode-label {
+  white-space: nowrap;
+}
+
+.toolbar button {
+  flex: 0 0 auto;
 }
 
 .save-split {
@@ -162,6 +174,25 @@ input {
 
 .mode-actions {
   margin-left: auto;
+}
+
+@media (max-width: 1400px) {
+  .toolbar {
+    gap: 6px;
+    padding-inline: 8px;
+  }
+
+  .toolbar > div {
+    gap: 4px;
+  }
+
+  .toolbar button {
+    padding-inline: 8px;
+  }
+
+  .mode-actions {
+    margin-left: 0;
+  }
 }
 
 .mode-label {
