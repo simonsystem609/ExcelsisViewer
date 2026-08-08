@@ -1,12 +1,12 @@
 # ExcelsisView
 
-ExcelsisView 1.1.21 is a Windows viewer for DXF, DWG, regular PDF, and 3D PDF
+ExcelsisView 1.1.22 is a Windows viewer for DXF, DWG, regular PDF, and 3D PDF
 documents.
 
-Version 1.1.21 keeps DXF toolbar button labels on one line when the application
-window narrows. The toolbar compacts at laptop-sized widths and uses contained
-horizontal overflow only when the full control set cannot fit; regular PDF and
-3D PDF behavior is unchanged.
+Version 1.1.22 keeps DXF toolbar button labels on one line when the application
+window narrows. The toolbar compacts first, then automatically becomes two
+rows instead of scrolling or allowing labels to escape below their button
+boxes; regular PDF and 3D PDF behavior is unchanged.
 
 Version 1.1.20 makes the generated Three.js/pako/browser-buffer runtime fully
 reproducible from pinned source tarballs, replaces Three.js object-identifier

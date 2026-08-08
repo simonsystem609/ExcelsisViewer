@@ -19,8 +19,8 @@ assert.match(styles, /\.save-split\s*\{[\s\S]{0,250}position:\s*relative/);
 assert.match(styles, /\.save-menu-toggle\s*\{[\s\S]{0,180}width:\s*24px/);
 assert.match(
   styles,
-  /\.toolbar\s*\{[\s\S]{0,420}overflow-x:\s*auto/,
-  "The DXF toolbar must contain narrow-window overflow instead of clipping controls.",
+  /\.toolbar\s*\{[\s\S]{0,420}overflow:\s*visible/,
+  "The DXF toolbar must not use a horizontal scrollbar when the window narrows.",
 );
 assert.match(
   styles,
@@ -30,7 +30,27 @@ assert.match(
 assert.match(
   styles,
   /@media\s*\(max-width:\s*1400px\)[\s\S]{0,520}\.toolbar button\s*\{[\s\S]{0,100}padding-inline:\s*8px/,
-  "The DXF toolbar must compact before horizontal overflow is needed.",
+  "The DXF toolbar must compact before its two-row layout is needed.",
+);
+assert.match(
+  styles,
+  /@media\s*\(max-width:\s*1320px\)[\s\S]{0,220}\.toolbar\s*\{[\s\S]{0,160}display:\s*grid[\s\S]{0,160}grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto/,
+  "The narrow DXF toolbar must switch to a deterministic two-column, two-row grid.",
+);
+assert.match(
+  styles,
+  /\.file-actions\s*\{[\s\S]{0,100}grid-column:\s*1[\s\S]{0,100}grid-row:\s*1/,
+  "File actions must stay on the first responsive toolbar row.",
+);
+assert.match(
+  styles,
+  /\.mode-actions\s*\{[\s\S]{0,100}grid-column:\s*2[\s\S]{0,100}grid-row:\s*1/,
+  "Mode actions must stay at the right of the first responsive toolbar row.",
+);
+assert.match(
+  styles,
+  /\.view-actions\s*\{[\s\S]{0,100}grid-column:\s*1\s*\/\s*-1[\s\S]{0,100}grid-row:\s*2/,
+  "View and editing actions must occupy the second responsive toolbar row.",
 );
 assert.match(application, /saveAsBtn\.addEventListener\(["']click["'],\s*saveFileAs\)/);
 assert.match(application, /desktopApi\?\.saveAs/);
@@ -90,6 +110,7 @@ assert.match(
 console.log(JSON.stringify({
   splitSaveMenu: true,
   responsiveToolbar: true,
+  twoRowResponsiveToolbar: true,
   dxfOnlySaveDialog: true,
   relaxedCleanupToggle: true,
   savedBodyCenteredRotation: true,

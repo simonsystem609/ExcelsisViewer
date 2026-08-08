@@ -111,8 +111,7 @@ input {
   padding: 8px 10px;
   background: var(--panel);
   border-bottom: 1px solid var(--line);
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: visible;
 }
 
 .toolbar > div {
@@ -192,6 +191,30 @@ input {
 
   .mode-actions {
     margin-left: 0;
+  }
+}
+
+@media (max-width: 1320px) {
+  .toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 6px;
+  }
+
+  .file-actions {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .mode-actions {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
+
+  .view-actions {
+    grid-column: 1 / -1;
+    grid-row: 2;
   }
 }
 
