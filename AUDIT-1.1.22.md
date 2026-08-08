@@ -1,9 +1,9 @@
 # ExcelsisView 1.1.22 release audit
 
-Audit date: 2026-08-08
+Audit dates: 2026-08-08 to 2026-08-09
 
-Decision: **GO for the protected, immutable GitHub release workflow, with the
-unsigned/no-Defender caveats below**
+Decision: **GO - published as an immutable, attested, remotely verified
+GitHub Release, with the unsigned/no-Defender caveats below**
 
 This is an engineering and open-source-license assessment, not legal advice,
 indemnity, or a promise that no third party can ever make a claim.
@@ -142,12 +142,51 @@ The ASAR is 51,672,056 bytes with SHA-256
   inherited native warnings through upstream-compatible changes where
   practical.
 
-## Publication controls
+## Post-publication verification
 
-Publication requires a protected pull request with all three language-specific
-CodeQL checks passing, an annotated `excelsis-view-v1.1.22` tag, a draft
-release whose 12 assets match this audit, an independent remote download and
-checksum verification before publication, release immutability, signed GitHub
-release attestation verification, Pages verification, and zero open CodeQL,
-Dependabot, or secret-scanning alerts. Post-publication evidence will be added
-to this audit without changing the immutable release or tag.
+- PR [#7](https://github.com/simonsystem609/ExcelsisViewer/pull/7) merged
+  normally after protected CodeQL run `31279646241` passed C/C++,
+  JavaScript/TypeScript, and Python. Release commit
+  `0c165706426a80daf2d305667c70ae67e0019a9c` contains the audited source and
+  site; the feature commit is
+  `90f7d70dd8ff4e179ca14c201b047bb9e64d241c`.
+- Annotated tag `excelsis-view-v1.1.22` is object
+  `98b0e292f5c5f3efaa6de918aed7333fe71d0d95` and dereferences to the exact
+  release commit.
+- GitHub Release ID `367310084` is non-draft, non-prerelease, latest, and
+  immutable with all 12 intended assets. Before publication, GitHub's recorded
+  names, sizes, and SHA-256 digests matched the audited staging set; all 12
+  draft assets were independently downloaded and matched, and the downloaded
+  checksum manifest verified its 11 listed payloads. After publication, all
+  12 unauthenticated public asset URLs returned HTTP 200.
+- GitHub's signed in-toto release attestation uses predicate
+  `https://in-toto.io/attestation/release/v0.2` and covers release ID
+  `367310084`, the exact annotated-tag object, and all 12 exact asset SHA-256
+  values. Its DSSE ECDSA signature validates against the embedded GitHub
+  Attester certificate. That certificate and its issuer validate to the
+  active 2026 GitHub TUF trusted root, and its
+  `https://dotcom.releases.github.com` identity and validity interval match
+  the release.
+- The attestation's RFC 3161 timestamp is `2026-08-08 21:50:09 UTC`. OpenSSL
+  verification against the TUF-pinned GitHub timestamp chain returned
+  `Verification: OK`; its SHA-256 message imprint
+  `c6885cdf54d506bbeef5fe3cd1a784d21f0d26fd47897ecbf867950c6cf72a4b`
+  exactly equals the DSSE signature hash. GitHub CLI 2.96.0's generic
+  `gh attestation verify` command does not accept the automatic release
+  attester's `GitHub, Inc.` issuer policy, so this verification used the
+  release bundle, GitHub CLI's TUF-verified trusted root, Node/OpenSSL
+  cryptography, and explicit content checks instead of claiming that command
+  succeeded.
+- Main-branch Pages run `31279909911` and `Push on main` run `31279910464`
+  passed for the release commit. The HTTPS Pages site returns the exact
+  1.1.22 installer link and two-row-toolbar description, and retains the
+  Helper cross-link and separate Excelsis3D plans/development-help section.
+- GitHub reports zero open CodeQL, Dependabot, and secret-scanning alerts.
+- Viewer `main` requires a pull request, an up-to-date branch, the three
+  language-specific CodeQL `Analyze` checks, and conversation resolution.
+  Administrator bypass, force pushes, and branch deletion are disabled.
+  Actions must be pinned to full-length commit SHAs.
+- Independent remote-download evidence is preserved under
+  `C:\GITHUB\viewer-1.1.22-remote-verify-20260808`; intake and final staging
+  evidence are under `C:\GITHUB\viewer-1.1.22-intake-20260808` and
+  `C:\GITHUB\viewer-1.1.22-final-20260808`.
