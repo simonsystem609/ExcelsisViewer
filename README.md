@@ -1,25 +1,23 @@
 # ExcelsisView
 
-ExcelsisView 1.1.20 is an open-source Windows viewer for DXF, DWG, regular
+ExcelsisView 1.1.21 is an open-source Windows viewer for DXF, DWG, regular
 PDF, and supported PRC/U3D 3D PDF documents. Document processing is local,
 and native document parsers run behind Windows process-containment and
 resource limits.
 
 ## Download
 
-- [Windows installer](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.20/ExcelsisView-Setup-1.1.20.exe)
-- [Release notes and all assets](https://github.com/simonsystem609/ExcelsisViewer/releases/tag/excelsis-view-v1.1.20)
-- [Exact corresponding-source archive](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.20/SOURCE-ExcelsisView-1.1.20.zip)
+- [Windows installer](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.21/ExcelsisView-Setup-1.1.21.exe)
+- [Release notes and all assets](https://github.com/simonsystem609/ExcelsisViewer/releases/tag/excelsis-view-v1.1.21)
+- [Exact corresponding-source archive](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.21/SOURCE-ExcelsisView-1.1.21.zip)
 - [SHA-256 checksums](SHA256SUMS.txt)
-- [Licensing and security audit](AUDIT-1.1.20.md)
+- [Licensing and security audit](AUDIT-1.1.21.md)
 
-Version 1.1.20 resolves the runtime-reachable findings from the previous
-CodeQL baseline: Three.js object UUIDs now use Web Crypto, the exact generated
-3D runtime source and build are supplied, nanoPRC carries checked allocation
-sizes without narrowing, and its image-decoder attack surface is limited to
-the JPEG/PNG formats declared by PRC. It also removes local compiler paths from
-the release binary. The full existing PDF, U3D, DWG/DXF, containment,
-Explorer, source, and packaged-byte gates remain in place.
+Version 1.1.21 keeps every DXF toolbar label on one line when the window is
+narrowed. Controls compact at laptop-sized widths and use contained horizontal
+overflow only when the full toolbar cannot fit. Regular-PDF and 3D-PDF
+behavior is unchanged. The full PDF, PRC, U3D, DWG/DXF, containment, Explorer,
+source, security, and packaged-byte gates were rerun against the exact build.
 
 The installer and ExcelsisView binaries are currently unsigned, so Windows
 may show a SmartScreen warning. Microsoft Defender was disabled in the build
@@ -35,7 +33,7 @@ contains the application source, the pinned modified nanoPRC source, the
 pinned modified U3D source, the LibreDWG source archive, license texts, and
 the scripts used to rebuild the release.
 
-From `source/ExcelsisView-1.1.20/app-asar-extract` on Windows with Node.js 24,
+From `source/ExcelsisView-1.1.21/app-asar-extract` on Windows with Node.js 24,
 npm, PowerShell, the documented native prerequisites, and Zig 0.16.0:
 
 ```powershell
@@ -44,7 +42,7 @@ npm run dist
 ```
 
 See
-[`source/ExcelsisView-1.1.20/app-asar-extract/SOURCE.md`](source/ExcelsisView-1.1.20/app-asar-extract/SOURCE.md)
+[`source/ExcelsisView-1.1.21/app-asar-extract/SOURCE.md`](source/ExcelsisView-1.1.21/app-asar-extract/SOURCE.md)
 for the complete build requirements.
 
 ## Project links
