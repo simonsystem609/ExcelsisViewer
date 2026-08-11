@@ -1,28 +1,29 @@
 # ExcelsisView
 
-ExcelsisView 1.1.22 is an open-source Windows viewer for DXF, DWG, regular
+ExcelsisView 1.1.23 is an open-source Windows viewer for DXF, DWG, regular
 PDF, and supported PRC/U3D 3D PDF documents. Document processing is local,
 and native document parsers run behind Windows process-containment and
 resource limits.
 
 ## Download
 
-- [Windows installer](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.22/ExcelsisView-Setup-1.1.22.exe)
-- [Release notes and all assets](https://github.com/simonsystem609/ExcelsisViewer/releases/tag/excelsis-view-v1.1.22)
-- [Exact corresponding-source archive](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.22/SOURCE-ExcelsisView-1.1.22.zip)
+- [Windows installer](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.23/ExcelsisView-Setup-1.1.23.exe)
+- [Release notes and all assets](https://github.com/simonsystem609/ExcelsisViewer/releases/tag/excelsis-view-v1.1.23)
+- [Exact corresponding-source archive](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.23/SOURCE-ExcelsisView-1.1.23.zip)
 - [SHA-256 checksums](SHA256SUMS.txt)
-- [Licensing and security audit](AUDIT-1.1.22.md)
+- [Licensing and security audit](AUDIT-1.1.23.md)
 
-Version 1.1.22 keeps every DXF toolbar label on one line when the window is
-narrowed. Controls compact first, then automatically arrange into exactly two
-rows at narrow widths without a horizontal scrollbar. Regular-PDF and 3D-PDF
-behavior is unchanged. The full PDF, PRC, U3D, DWG/DXF, containment, Explorer,
-source, security, and packaged-byte gates were rerun against the exact build.
+Version 1.1.23 opens the active DXF/DWG model or paper space instead of
+drawing both spaces together. Large read-only DWGs use cached batched canvas
+paths, indexed pointer hit-testing, bounded feature-list output, and defer
+editable contour analysis until Save As DXF. The full PDF, PRC, U3D, DWG/DXF,
+containment, Explorer, source, security, and packaged-byte gates were rerun
+against the exact release candidate.
 
 The installer and ExcelsisView binaries are currently unsigned, so Windows
 may show a SmartScreen warning. Microsoft Defender was disabled in the build
-environment, so no Defender scan is claimed. Kaspersky 21.26 with 2026-08-08
-bases scanned the exact release assets, unpacked payload, and expanded source
+environment, so no Defender scan is claimed. Kaspersky 21.26 with 2026-08-11
+bases scanned the exact release assets and unpacked payload
 with zero detections or suspicions. Verify the installer SHA-256 before running
 it.
 
@@ -33,7 +34,7 @@ contains the application source, the pinned modified nanoPRC source, the
 pinned modified U3D source, the LibreDWG source archive, license texts, and
 the scripts used to rebuild the release.
 
-From `source/ExcelsisView-1.1.22/app-asar-extract` on Windows with Node.js 24,
+From `source/ExcelsisView-1.1.23/app-asar-extract` on Windows with Node.js 24,
 npm, PowerShell, the documented native prerequisites, and Zig 0.16.0:
 
 ```powershell
@@ -42,7 +43,7 @@ npm run dist
 ```
 
 See
-[`source/ExcelsisView-1.1.22/app-asar-extract/SOURCE.md`](source/ExcelsisView-1.1.22/app-asar-extract/SOURCE.md)
+[`source/ExcelsisView-1.1.23/app-asar-extract/SOURCE.md`](source/ExcelsisView-1.1.23/app-asar-extract/SOURCE.md)
 for the complete build requirements.
 
 ## Project links

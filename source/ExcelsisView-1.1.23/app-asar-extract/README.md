@@ -1,7 +1,14 @@
 # ExcelsisView
 
-ExcelsisView 1.1.22 is a Windows viewer for DXF, DWG, regular PDF, and 3D PDF
+ExcelsisView 1.1.23 is a Windows viewer for DXF, DWG, regular PDF, and 3D PDF
 documents.
+
+Version 1.1.23 opens only the active DXF/DWG model or paper space, preventing
+translated model/layout duplicates from being drawn side-by-side. Large
+read-only DWGs use cached batched canvas paths, indexed pointer hit-testing,
+bounded feature-list DOM output, and defer editable contour analysis until
+Save As DXF. The supplied 3.76 MB regression drawing therefore keeps 46,001
+active expanded entities instead of drawing 90,258 entities from both spaces.
 
 Version 1.1.22 keeps DXF toolbar button labels on one line when the application
 window narrows. The toolbar compacts first, then automatically becomes two
@@ -22,9 +29,9 @@ NSIS payload. All application runtimes, native decoders, Explorer integration,
 licenses, and notices remain in the installer; the adjacent sources remain the
 exact AGPL/GPL compliance materials for redistribution.
 
-The release also updates PDF.js to 6.2.108 and Electron to 43.3.0, keeps PDF.js
-dynamic evaluation and scripting disabled in every production loader, and
-retains the isolated native-parser and exact packaged-runtime gates.
+The release also uses PDF.js 6.2.108 and Electron 43.3.0, keeps PDF.js dynamic
+evaluation and scripting disabled in every production loader, and retains the
+isolated native-parser and exact packaged-runtime gates.
 
 Version 1.1.18 evaluates Auto print orientation independently for every page.
 Mixed A4 portrait and A3 landscape sheets remain one ordered, collated,

@@ -36,9 +36,7 @@ const secureThreeUuidPlugin = {
   name: "secure-three-uuid",
   setup(buildContext) {
     buildContext.onLoad({ filter: /three\.module\.js$/ }, async (args) => {
-      if (path.resolve(args.path) !== threeModulePath) {
-        return undefined;
-      }
+      if (path.resolve(args.path) !== threeModulePath) return undefined;
 
       const upstreamSource = await readFile(args.path, "utf8");
       const occurrences = upstreamSource.split(insecureUuidSource).length - 1;

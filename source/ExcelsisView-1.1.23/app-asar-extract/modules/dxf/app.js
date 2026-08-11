@@ -17,6 +17,11 @@ import {
   drawDxfCoordinateSystem,
   drawDxfOriginMarker,
 } from "./coordinate-overlays.mjs";
+import {
+  activeDxfSpace,
+  dxfEntitySpace,
+  DXF_PAPER_SPACE,
+} from "./dxf-space.mjs";
 import { rotateEntityInPlace } from "./transform-utils.mjs";
 
 const canvas = document.getElementById("canvas");
@@ -133,6 +138,7 @@ const state = {
   originalOverlayBusy: false,
   originalOverlaySourcePath: null,
   cleanupBusy: false,
+  lightweightFeatures: false,
 };
 
 const GEOM_TYPES = new Set(["LINE", "ARC", "CIRCLE", "LWPOLYLINE"]);
@@ -143,6 +149,7 @@ const SELECTION_COLOR = "#ff4f5f";
 const SNAP_COLOR = "#39ff88";
 const OUTLINE_ACCEPTANCE_MM = 0.1;
 const CLOCKWISE_QUARTER_TURN_DEGREES = -90;
+const FEATURE_LIST_RENDER_LIMIT = 1000;
 // Arc & line method: clean features and feature vertices must match the source
 // closely (tight), but where the source outline is broken/noisy we reconstruct
 // the intended geometry logically instead of chasing mesh ripple, allowing a
@@ -177,6 +184,8 @@ let featureUiSignature = "";
 let renderFramePending = false;
 let hoverFramePending = false;
 let pendingHoverPoint = null;
+let geometryRenderCache = null;
+let geometryRenderCacheRevision = -1;
 
 function resizeCanvas() {
   const rect = canvas.getBoundingClientRect();
@@ -210,19 +219,26 @@ function parseDxf(text) {
   const normalized = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   const rawLines = normalized.split("\n");
   const pairs = [];
+  const sharedCodes = new Map();
 
   for (let i = 0; i < rawLines.length; i += 2) {
+    const parsedCode = (rawLines[i] ?? "").trim();
+    let code = sharedCodes.get(parsedCode);
+    if (code === undefined) {
+      code = parsedCode;
+      sharedCodes.set(parsedCode, code);
+    }
     pairs.push({
-      code: (rawLines[i] ?? "").trim(),
+      code,
       value: rawLines[i + 1] ?? "",
-      rawCode: rawLines[i] ?? "",
-      rawValue: rawLines[i + 1] ?? "",
     });
   }
 
   const entities = [];
   const blocksByName = new Map();
   const idGen = { next: 1 };
+  const visibleSpace = activeDxfSpace(pairs);
+  const parseStats = { hiddenSpaceEntities: 0 };
 
   let i = 0;
   while (i < pairs.length) {
@@ -249,13 +265,27 @@ function parseDxf(text) {
     if (sectionName === "BLOCKS") {
       parseBlocksSection(pairs, (nameI < pairs.length && pairs[nameI].code === "2") ? nameI + 1 : i + 1, endSec, blocksByName, idGen);
     } else if (sectionName === "ENTITIES") {
-      parseEntitiesSection(pairs, (nameI < pairs.length && pairs[nameI].code === "2") ? nameI + 1 : i + 1, endSec, entities, blocksByName, idGen);
+      parseEntitiesSection(
+        pairs,
+        (nameI < pairs.length && pairs[nameI].code === "2") ? nameI + 1 : i + 1,
+        endSec,
+        entities,
+        blocksByName,
+        idGen,
+        visibleSpace,
+        parseStats,
+      );
     }
 
     i = endSec + 1;
   }
 
-  return { pairs, entities, text };
+  return {
+    pairs,
+    entities,
+    activeSpace: visibleSpace,
+    hiddenSpaceEntityCount: parseStats.hiddenSpaceEntities,
+  };
 }
 
 function parseBlocksSection(pairs, startI, endI, blocksByName, idGen) {
@@ -302,12 +332,48 @@ function parseBlocksSection(pairs, startI, endI, blocksByName, idGen) {
   }
 }
 
-function parseEntitiesSection(pairs, startI, endI, entities, blocksByName, idGen) {
+function nextRawEntityIndex(pairs, startI, endI) {
+  let index = startI + 1;
+  while (index < endI && pairs[index].code !== "0") index += 1;
+  const parentType = pairs[startI]?.value?.trim().toUpperCase();
+  const parentPairs = pairs.slice(startI, index);
+  const sequenceChildType = parentType === "POLYLINE"
+    ? "VERTEX"
+    : (parentType === "INSERT" && readFirst(parentPairs, "66") === "1" ? "ATTRIB" : null);
+  if (!sequenceChildType) return index;
+  while (index < endI && pairs[index].code === "0") {
+    const type = pairs[index].value.trim().toUpperCase();
+    let after = index + 1;
+    while (after < endI && pairs[after].code !== "0") after += 1;
+    if (type === "SEQEND") return after;
+    if (type !== sequenceChildType) return index;
+    index = after;
+  }
+  return index;
+}
+
+function parseEntitiesSection(
+  pairs,
+  startI,
+  endI,
+  entities,
+  blocksByName,
+  idGen,
+  visibleSpace,
+  parseStats,
+) {
   let i = startI;
   while (i < endI) {
     if (pairs[i].code !== "0") { i++; continue; }
     const type = pairs[i].value.trim().toUpperCase();
     if (type === "ENDSEC") break;
+
+    const nextIndex = nextRawEntityIndex(pairs, i, endI);
+    if (dxfEntitySpace(pairs, i, nextIndex) !== visibleSpace) {
+      parseStats.hiddenSpaceEntities += 1;
+      i = nextIndex;
+      continue;
+    }
 
     if (type === "INSERT") {
       const result = parseInsertEntity(pairs, i, idGen, blocksByName);
@@ -374,6 +440,7 @@ function parsePolylineGroup(pairs, startI, idGen) {
     end: endIndex,
     pairs: pairs.slice(startI, endIndex + 1),
     layer,
+    space: dxfEntitySpace(headerPairs, 0, headerPairs.length),
     deleted: false,
     modified: false,
     featureId: null,
@@ -420,6 +487,7 @@ function parseInsertEntity(pairs, startI, idGen, blocksByName) {
     end: j - 1,
     pairs: insertPairs,
     layer: readFirst(insertPairs, "8") || "0",
+    space: dxfEntitySpace(insertPairs, 0, insertPairs.length),
     deleted: false,
     modified: false,
     featureId: null,
@@ -463,6 +531,7 @@ function transformEntityForInsert(src, placeholder, t, idGen) {
     virtual: true,
     originalType: src.originalType || src.type,
     parentInsertId: placeholder.id,
+    space: placeholder.space,
   };
   if (src.type === "LINE") {
     const a = transformPointForInsert({ x: src.x1, y: src.y1 }, t);
@@ -491,6 +560,31 @@ function transformEntityForInsert(src, placeholder, t, idGen) {
       points: src.points.map((p) => ({ ...transformPointForInsert(p, t), bulge: p.bulge || 0 })),
       closed: !!src.closed,
     };
+  }
+  if (src.isAnnotation) {
+    const position = transformPointForInsert({ x: src.x, y: src.y }, t);
+    const rotDeg = (t.rotRad || 0) * 180 / Math.PI;
+    const transformed = {
+      ...base,
+      type: src.type,
+      originalType: src.originalType || src.type,
+      isAnnotation: true,
+      text: src.text,
+      x: position.x,
+      y: position.y,
+      height: src.height * uniformScale,
+      rotation: normalizeDegrees((src.rotation || 0) + rotDeg),
+      hasExplicitRotation: true,
+    };
+    if (src.alignmentPoint) {
+      transformed.alignmentPoint = transformPointForInsert(src.alignmentPoint, t);
+    }
+    if (src.directionVector) {
+      const vectorTransform = { ...t, tx: 0, ty: 0 };
+      transformed.directionVector = transformPointForInsert(src.directionVector, vectorTransform);
+      transformed.hasExplicitRotation = false;
+    }
+    return transformed;
   }
   return null;
 }
@@ -628,6 +722,7 @@ function parseEntity(type, pairs, start, end, id) {
     end,
     pairs,
     layer: readFirst(pairs, "8") || "0",
+    space: dxfEntitySpace(pairs, 0, pairs.length),
     deleted: false,
     modified: false,
     featureId: null,
@@ -742,7 +837,7 @@ function parseEntity(type, pairs, start, end, id) {
     entity.points = polyPoints.map((p) => ({ x: p.x, y: p.y, bulge: 0 }));
     entity.closed = closed;
     entity.supported = true;
-  } else if (type === "TEXT") {
+  } else if (type === "TEXT" || type === "ATTRIB") {
     // Single-line text annotation. We render but don't include in features
     // or geometry editing. Insertion point is (10,20); alignment point (11,21)
     // is used when 72 or 73 are non-zero, but for simple display the insertion
@@ -758,7 +853,7 @@ function parseEntity(type, pairs, start, end, id) {
       entity.supported = false;
       return entity;
     }
-    entity.originalType = "TEXT";
+    entity.originalType = type;
     entity.text = text;
     entity.x = x;
     entity.y = y;
@@ -853,7 +948,6 @@ function setNthValue(pairs, code, nth, value) {
       seen++;
       if (seen === nth) {
         pair.value = formatNumber(value);
-        pair.rawValue = pair.value;
         return;
       }
     }
@@ -866,7 +960,7 @@ function setOrAppendValue(pairs, code, value) {
     return;
   }
   const formatted = formatNumber(value);
-  pairs.push({ code, value: formatted, rawCode: code, rawValue: formatted });
+  pairs.push({ code, value: formatted });
 }
 
 function formatNumber(value) {
@@ -930,10 +1024,13 @@ function createPointClusterer(tolerance) {
 
 function buildFeatures() {
   geometryRevision += 1;
+  geometryRenderCache = null;
+  geometryRenderCacheRevision = -1;
   selectionUiSignature = "";
   measureUiSignature = "";
   featureUiSignature = "";
   if (!state.doc) {
+    state.lightweightFeatures = false;
     state.features = [];
     entityByIdMap = new Map();
     featureByIdMap = new Map();
@@ -946,6 +1043,17 @@ function buildFeatures() {
   entityByIdMap = new Map(state.doc.entities.map((entity) => [entity.id, entity]));
   const entities = state.doc.entities.filter((e) => e.supported && !e.deleted && !e.isAnnotation);
   for (const e of state.doc.entities) e.featureId = null;
+
+  // Converted DWGs are read-only until Save As. Building tens of thousands of
+  // editable contour groups for that view wastes seconds and hundreds of MiB;
+  // keep hit testing/measurement indexed while deferring contour analysis.
+  state.lightweightFeatures = state.readOnlyReason === "dwg-conversion";
+  if (state.lightweightFeatures) {
+    state.features = [];
+    featureByIdMap = new Map();
+    rebuildEntitySpatialIndex(entities);
+    return;
+  }
 
   const parent = new Map();
   for (const e of entities) parent.set(e.id, e.id);
@@ -1615,14 +1723,15 @@ function renderCanvasNow() {
   }
 
   drawGrid(w, h);
-
-  for (const e of state.doc.entities) {
-    if (!e.supported || e.deleted) continue;
-    const feature = featureById(e.featureId);
-    const selected = isEntitySelected(e.id) || (feature && isFeatureSelected(feature.id));
-    const measured = state.mode === "measure" && state.measureEntityIds.includes(e.id);
-    const color = selected ? SELECTION_COLOR : measured ? "#6f4cff" : colorForFeature(feature);
-    drawEntity(e, color, selected || measured ? 2.4 : 1.4);
+  const cache = geometryPathsForCurrentRevision();
+  if (cache) {
+    strokeGeometryPathCache(cache);
+    for (const annotation of cache.annotations) {
+      drawAnnotation(annotation, colorForFeature(featureById(annotation.featureId)));
+    }
+    drawGeometryOverlays();
+  } else {
+    drawGeometryIndividually();
   }
 
   for (const p of state.measure) drawPointMarker(p, "#ffcc66", 5);
@@ -1638,6 +1747,116 @@ function renderCanvasNow() {
     fitScale: state.view.fitScale,
   });
   drawDxfCoordinateSystem(ctx, w, h);
+}
+
+function appendEntityToWorldPath(path, entity) {
+  if (entity.type === "LINE") {
+    path.moveTo(entity.x1, entity.y1);
+    path.lineTo(entity.x2, entity.y2);
+    return;
+  }
+  if (entity.type === "CIRCLE") {
+    const radius = Math.abs(entity.r);
+    if (!(radius > 0)) return;
+    path.moveTo(entity.cx + radius, entity.cy);
+    path.arc(entity.cx, entity.cy, radius, 0, Math.PI * 2);
+    return;
+  }
+  if (entity.type === "ARC") {
+    const radius = Math.abs(entity.r);
+    if (!(radius > 0)) return;
+    const start = (entity.a1 * Math.PI) / 180;
+    const end = ((entity.a1 + arcSweep(entity.a1, entity.a2)) * Math.PI) / 180;
+    path.moveTo(entity.cx + radius * Math.cos(start), entity.cy + radius * Math.sin(start));
+    path.arc(entity.cx, entity.cy, radius, start, end);
+    return;
+  }
+  if (entity.type === "LWPOLYLINE") {
+    const points = samplePolyline(entity, 48);
+    if (!points.length) return;
+    path.moveTo(points[0].x, points[0].y);
+    for (let index = 1; index < points.length; index += 1) {
+      path.lineTo(points[index].x, points[index].y);
+    }
+    if (entity.closed) path.closePath();
+  }
+}
+
+function geometryPathsForCurrentRevision() {
+  if (typeof Path2D !== "function") return null;
+  if (geometryRenderCache && geometryRenderCacheRevision === geometryRevision) {
+    return geometryRenderCache;
+  }
+  const paths = new Map();
+  const annotations = [];
+  for (const entity of state.doc?.entities || []) {
+    if (!entity.supported || entity.deleted) continue;
+    if (entity.isAnnotation) {
+      annotations.push(entity);
+      continue;
+    }
+    if (!GEOM_TYPES.has(entity.type)) continue;
+    const color = colorForFeature(featureById(entity.featureId));
+    let path = paths.get(color);
+    if (!path) {
+      path = new Path2D();
+      paths.set(color, path);
+    }
+    appendEntityToWorldPath(path, entity);
+  }
+  geometryRenderCache = { paths, annotations };
+  geometryRenderCacheRevision = geometryRevision;
+  return geometryRenderCache;
+}
+
+function strokeGeometryPathCache(cache) {
+  const scale = Math.max(Math.abs(state.view.scale), 1e-9);
+  ctx.save();
+  ctx.transform(state.view.scale, 0, 0, -state.view.scale, state.view.ox, state.view.oy);
+  ctx.lineWidth = 1.4 / scale;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  for (const [color, path] of cache.paths) {
+    ctx.strokeStyle = color;
+    ctx.stroke(path);
+  }
+  ctx.restore();
+}
+
+function overlayEntityIds() {
+  const ids = new Set(state.selectedEntityIds);
+  for (const featureId of state.selectedFeatureIds) {
+    const feature = featureById(featureId);
+    for (const id of feature?.entities || []) ids.add(id);
+  }
+  if (state.mode === "measure") {
+    for (const id of state.measureEntityIds) {
+      if (id != null) ids.add(id);
+    }
+  }
+  return ids;
+}
+
+function drawGeometryOverlays() {
+  const measuredIds = new Set(state.mode === "measure" ? state.measureEntityIds : []);
+  for (const id of overlayEntityIds()) {
+    const entity = entityById(id);
+    if (!entity?.supported || entity.deleted) continue;
+    const measured = measuredIds.has(id);
+    drawEntity(entity, measured ? "#6f4cff" : SELECTION_COLOR, 2.4);
+  }
+}
+
+function drawGeometryIndividually() {
+  const measuredIds = new Set(state.mode === "measure" ? state.measureEntityIds : []);
+  for (const entity of state.doc.entities) {
+    if (!entity.supported || entity.deleted) continue;
+    const feature = featureById(entity.featureId);
+    const selected = isEntitySelected(entity.id) || (feature && isFeatureSelected(feature.id));
+    const measured = measuredIds.has(entity.id);
+    const color = selected ? SELECTION_COLOR : measured ? "#6f4cff" : colorForFeature(feature);
+    drawEntity(entity, color, selected || measured ? 2.4 : 1.4);
+  }
 }
 
 function render() {
@@ -2298,7 +2517,7 @@ async function mirrorCurrentDxf() {
         state.readOnlyReason = lockState?.reason || null;
       }
       loadDxfText(mirrorText);
-      state.savedText = serializeDxf();
+      state.savedText = canonicalDxfText(mirrorText);
       state.dirty = false;
       state.undoStack = [];
       state.selectedEntityIds.clear();
@@ -2308,8 +2527,6 @@ async function mirrorCurrentDxf() {
         state.readOnly = false;
         state.readOnlyReason = null;
       }
-      rebuild();
-      fitView();
       ui.hud.textContent = `Mirrored DXF saved${mirror?.name ? `: ${mirror.name}` : ""}. ${result.mirrored} entit${result.mirrored === 1 ? "y" : "ies"} mirrored.`;
       return;
     }
@@ -2406,7 +2623,7 @@ function rotateCurrentDrawing() {
   const rotatedText = serializeDxf();
   loadDxfText(rotatedText, { preserveView: true });
   clearStaleOriginalComparison();
-  updateDirty();
+  updateDirty(rotatedText);
   state.rotateBusy = false;
   syncUi();
   fitView();
@@ -2682,7 +2899,7 @@ async function scaleCurrentDxf() {
         state.readOnlyReason = lockState?.reason || null;
       }
       loadDxfText(scaleText);
-      state.savedText = serializeDxf();
+      state.savedText = canonicalDxfText(scaleText);
       state.dirty = false;
       state.undoStack = [];
       state.selectedEntityIds.clear();
@@ -2692,8 +2909,6 @@ async function scaleCurrentDxf() {
         state.readOnly = false;
         state.readOnlyReason = null;
       }
-      rebuild();
-      fitView();
       ui.hud.textContent = `Scaled DXF saved${scaled?.name ? `: ${scaled.name}` : ""}. ${result.scaled} entit${result.scaled === 1 ? "y" : "ies"} scaled.`;
       return;
     }
@@ -3268,10 +3483,15 @@ function nearestSnap(screenPoint) {
   if (!state.doc) return null;
   const candidates = [];
   const tangentReference = state.measure.length === 1 ? state.measure[0] : null;
-  for (const e of nearbyEntities(screenPoint, 15)) {
+  const nearby = nearbyEntities(screenPoint, 15);
+  const nearbyFeatureIds = new Set();
+  for (const e of nearby) {
     addEntitySnapCandidates(candidates, e, screenPoint, tangentReference);
+    if (e.featureId) nearbyFeatureIds.add(e.featureId);
   }
-  for (const f of state.features) {
+  for (const featureId of nearbyFeatureIds) {
+    const f = featureById(featureId);
+    if (!f) continue;
     candidates.push({ point: f.center, label: `${f.name} center`, priority: 3 });
   }
   let best = null;
@@ -3478,8 +3698,9 @@ function syncUi() {
   document.querySelectorAll(".mode").forEach((button) => {
     button.classList.toggle("active", button.dataset.mode === state.mode);
   });
+  const spaceLabel = state.doc?.activeSpace === DXF_PAPER_SPACE ? "paper space" : "model space";
   ui.hud.textContent = state.doc
-    ? `${current?.name || "DXF"} - ${state.doc.entities.filter((e) => e.supported && !e.deleted).length} entities${isConvertedDwg ? " - converted DWG, read-only" : (state.readOnly ? " - read-only" : "")}`
+    ? `${current?.name || "DXF"} - ${state.doc.entities.filter((e) => e.supported && !e.deleted).length} entities - ${spaceLabel}${isConvertedDwg ? " - converted DWG, read-only" : (state.readOnly ? " - read-only" : "")}`
     : "Open a DXF or DWG from Windows Explorer.";
   const nextSelectionSignature = currentSelectionUiSignature();
   if (nextSelectionSignature !== selectionUiSignature) {
@@ -7312,7 +7533,7 @@ async function applyOuterContourRepair(options) {
       state.readOnlyReason = lockState?.reason || null;
     }
     loadDxfText(fixedText);
-    state.savedText = serializeDxf();
+    state.savedText = canonicalDxfText(fixedText);
     state.dirty = false;
     state.undoStack = [];
     state.selectedEntityIds.clear();
@@ -7322,8 +7543,6 @@ async function applyOuterContourRepair(options) {
       state.readOnly = false;
       state.readOnlyReason = null;
     }
-    rebuild();
-    fitView();
     result.fixedPath = fixed?.path || "";
     result.fixedName = fixed?.name || "";
     return result;
@@ -7712,7 +7931,25 @@ function rawMeasureDetailLines(e, snap) {
 function syncFeatureList() {
   ui.featureList.innerHTML = "";
   const fragment = document.createDocumentFragment();
-  for (const f of state.features) {
+  if (state.lightweightFeatures) {
+    const note = document.createElement("div");
+    note.className = "feature-item";
+    note.innerHTML = `
+      <div class="feature-title">Fast DWG view</div>
+      <div class="feature-meta">Contour editing is deferred until Save As DXF.</div>
+    `;
+    fragment.appendChild(note);
+  }
+  const listedFeatures = state.features.slice(0, FEATURE_LIST_RENDER_LIMIT);
+  const listedIds = new Set(listedFeatures.map((feature) => feature.id));
+  for (const selectedId of state.selectedFeatureIds) {
+    const selected = featureById(selectedId);
+    if (selected && !listedIds.has(selected.id)) {
+      listedFeatures.push(selected);
+      listedIds.add(selected.id);
+    }
+  }
+  for (const f of listedFeatures) {
     const item = document.createElement("div");
     item.className = `feature-item ${f.kind}`;
     if (isFeatureSelected(f.id)) item.classList.add("selected");
@@ -7722,6 +7959,15 @@ function syncFeatureList() {
     `;
     item.addEventListener("click", (event) => selectFeature(f.id, event.ctrlKey || event.metaKey));
     fragment.appendChild(item);
+  }
+  if (state.features.length > FEATURE_LIST_RENDER_LIMIT) {
+    const remainder = document.createElement("div");
+    remainder.className = "feature-item";
+    remainder.innerHTML = `
+      <div class="feature-title">${state.features.length - FEATURE_LIST_RENDER_LIMIT} more contours</div>
+      <div class="feature-meta">Select them directly in the drawing.</div>
+    `;
+    fragment.appendChild(remainder);
   }
   ui.featureList.appendChild(fragment);
 }
@@ -7746,8 +7992,16 @@ function markDirty() {
   updateDirty();
 }
 
-function updateDirty() {
-  state.dirty = !!state.doc && serializeDxf() !== state.savedText;
+function canonicalDxfText(text) {
+  return String(text || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").replace(/\n/g, "\r\n");
+}
+
+function updateDirty(currentText = null) {
+  state.dirty = !!state.doc && (
+    typeof currentText === "string"
+      ? canonicalDxfText(currentText) !== state.savedText
+      : true
+  );
   syncUi();
 }
 
@@ -7764,7 +8018,7 @@ function undoLastChange() {
   if (!state.undoStack.length || (state.readOnly && state.readOnlyReason !== "dwg-conversion")) return;
   const snapshot = state.undoStack.pop();
   loadDxfText(snapshot, { preserveView: true });
-  updateDirty();
+  updateDirty(snapshot);
 }
 
 function loadDxfText(text, { preserveView = false } = {}) {
@@ -7805,8 +8059,8 @@ function serializeDxf() {
 }
 
 function pushPair(out, pair) {
-  out.push(pair.rawCode ?? pair.code);
-  out.push(pair.rawValue ?? pair.value);
+  out.push(pair.code);
+  out.push(pair.value);
 }
 
 function buildLwPolylinePairs(e) {
@@ -8023,7 +8277,7 @@ async function updateReadOnly(lockState) {
   if (wasReadOnly && !state.readOnly && !state.dirty && desktopApi) {
     const text = await desktopApi.readFile(current.path);
     loadDxfText(text, { preserveView: true });
-    state.savedText = serializeDxf();
+    state.savedText = canonicalDxfText(text);
   }
   if (state.readOnly && state.dirty) {
     ui.hud.textContent = `${current.name} - read-only; discard unsaved changes before navigating`;
@@ -8036,7 +8290,7 @@ async function refreshReadOnlyFile(savedState) {
   if (!state.readOnly || state.dirty || !current?.path || savedState?.path !== current.path || !desktopApi) return;
   const text = await desktopApi.readFile(current.path);
   loadDxfText(text, { preserveView: true });
-  state.savedText = serializeDxf();
+  state.savedText = canonicalDxfText(text);
   state.dirty = false;
   syncUi();
 }
@@ -8070,7 +8324,7 @@ async function loadCurrentFile() {
   }
   const text = current.path && desktopApi ? await desktopApi.readFile(current.path) : await current.file.text();
   loadDxfText(text);
-  state.savedText = serializeDxf();
+  state.savedText = canonicalDxfText(text);
   state.dirty = false;
   syncUi();
 }
@@ -8133,6 +8387,11 @@ async function saveFileAs() {
     alert(`Could not save DXF copy: ${error.message || error}`);
     return false;
   }
+  if (state.lightweightFeatures && !state.readOnly) {
+    ui.hud.textContent = "Saved as DXF. Preparing editable contours...";
+    await nextPaint();
+    rebuild();
+  }
   markDocumentSaved(text);
   return true;
 }
@@ -8142,7 +8401,7 @@ async function discardChanges() {
   const current = currentFile();
   const text = current?.path && desktopApi ? await desktopApi.readFile(current.path) : state.savedText;
   loadDxfText(text, { preserveView: true });
-  state.savedText = serializeDxf();
+  state.savedText = canonicalDxfText(text);
   state.dirty = false;
   state.undoStack = [];
   syncUi();
