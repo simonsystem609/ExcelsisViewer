@@ -155,7 +155,34 @@ The ASAR is 51,682,478 bytes with SHA-256
 
 ## Publication verification
 
-Publication through the protected branch, immutable GitHub Release,
-attestation, remote-download, Pages, CodeQL, and alert checks is pending. This
-section will be updated with exact commit, tag, release, run, and verification
-identifiers after those remote gates complete.
+- Release PR [#10](https://github.com/simonsystem609/ExcelsisViewer/pull/10)
+  merged normally through the protected branch as commit
+  `2ca0ded6d8af582752f0786a641b3fe424a79a5e`. Its CodeQL run
+  `31544404519` passed the required C/C++, JavaScript/TypeScript, and Python
+  analyses.
+- Annotated tag `excelsis-view-v1.1.23`, object
+  `6baf9293d90d5c53c0d6c12e8d923e43957957dd`, dereferences to that exact
+  release commit. GitHub Release `368899805` is published, latest,
+  non-prerelease, and immutable.
+- Before publication, all 12 draft assets matched the local names, sizes, and
+  GitHub server-side SHA-256 digests. An authenticated draft download matched
+  staging, then all 12 unauthenticated public URLs returned HTTP 200 and the
+  independently downloaded bytes matched again. The downloaded checksum
+  manifest verifies all 11 payload entries.
+- Every independently downloaded asset passed `gh release verify-asset`
+  against GitHub's signed release attestation for this exact immutable release.
+- Main-commit Pages run `31544804601` and `Push on main` CodeQL run
+  `31544805216` passed. The live HTTPS Page and remote README match the
+  release-commit files
+  byte-for-byte: Page SHA-256
+  `20E0FD4A0248AFBD639CDFD6596AC0C26BB7B1B492FDB52EDE3EE2A06AA1AE29`;
+  README SHA-256
+  `BAE3E331BF2BFDEF86BC6EFBA3B57E343D971F6CE489661E5FF77182DDF55457`.
+  The Page exposes the exact 1.1.23 installer, retains the Helper cross-link,
+  separate Excelsis3D plans/development-help section, and authorized contact
+  section.
+- Open CodeQL, Dependabot, and secret-scanning alert counts are zero. Main
+  requires a pull request, an up-to-date branch, the three CodeQL checks, and
+  conversation resolution; admin enforcement is enabled and force pushes and
+  branch deletion are disabled. Actions are read-only by default and require
+  full commit-SHA pinning.
