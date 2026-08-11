@@ -55,6 +55,16 @@ for the complete build requirements.
 
 Please do not upload confidential customer or CAD files to public issues.
 
+## Contact
+
+For collaboration, development, or general inquiries, email
+[simonsystem609@gmail.com](mailto:simonsystem609@gmail.com).
+
+For bug reports, please use
+[GitHub Issues](https://github.com/simonsystem609/ExcelsisViewer/issues); it is
+the preferred channel for reproducible problems. Do not email credentials or
+confidential files.
+
 ## License
 
 Authored ExcelsisView code is `AGPL-3.0-or-later`; see [LICENSE](LICENSE).
