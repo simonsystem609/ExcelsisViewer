@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Excelsis Update Center</title>
+  <link rel="stylesheet" href="./update-center.css">
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Update Center</h1>
+        <p>Compares installed versions with the latest immutable Excelsis GitHub releases.</p>
+      </div>
+      <button id="refresh" type="button">Refresh</button>
+    </header>
+    <section id="products" aria-live="polite">
+      <article class="product" data-product="viewer">
+        <div>
+          <h2>ExcelsisView</h2>
+          <p class="version">Checking latest release...</p>
+          <p class="detail"></p>
+          <progress max="100" value="0" hidden></progress>
+        </div>
+        <button class="install" type="button" disabled>Download and run</button>
+      </article>
+      <article class="product" data-product="helper">
+        <div>
+          <h2>Excelsis Helper</h2>
+          <p class="version">Checking latest release...</p>
+          <p class="detail"></p>
+          <progress max="100" value="0" hidden></progress>
+        </div>
+        <button class="install" type="button" disabled>Download and run</button>
+      </article>
+    </section>
+    <p class="notice">
+      The installer is saved in Downloads, checked against GitHub's SHA-256 digest,
+      and then opened. Windows may show UAC or SmartScreen because releases can be unsigned.
+    </p>
+    <div id="status" role="status" aria-live="polite"></div>
+  </main>
+  <script src="./update-center.js"></script>
+</body>
+</html>
