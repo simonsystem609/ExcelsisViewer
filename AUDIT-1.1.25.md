@@ -155,8 +155,34 @@ The ASAR is 51,727,541 bytes with SHA-256
 
 ## Publication verification
 
-The protected pull request, required C/C++, JavaScript/TypeScript, and Python
-CodeQL checks, immutable release, GitHub asset digests and attestations,
-independent unauthenticated downloads, Pages deployment, and post-publication
-alert counts must all pass before the release is declared fully published.
-Those remote results will be recorded here after publication.
+Publication completed through protected pull request
+[#12](https://github.com/simonsystem609/ExcelsisViewer/pull/12). The required
+C/C++, JavaScript/TypeScript, and Python CodeQL jobs passed in
+[run 31735551916](https://github.com/simonsystem609/ExcelsisViewer/actions/runs/31735551916),
+and GitHub created release commit
+`e300fcfb7ad9d2950da0edde6b2b95dc90c3d119` without a force push or protection
+bypass.
+
+- Annotated tag `excelsis-view-v1.1.25` has tag-object SHA
+  `d6b3e649872a19c17033c9f2ebacf3b54f55f430` and dereferences to the exact
+  release commit above.
+- [Immutable release 370155730](https://github.com/simonsystem609/ExcelsisViewer/releases/tag/excelsis-view-v1.1.25)
+  is public, non-draft, non-prerelease, and contains exactly the 12 intended
+  assets. Names, sizes, and GitHub SHA-256 digests matched before publication.
+- Authenticated draft downloads and fresh unauthenticated public downloads of
+  all 12 assets matched the staged bytes and checksum manifest. GitHub's
+  signed release attestation verified successfully for every downloaded asset.
+- The post-merge CodeQL analysis passed all three language jobs in
+  [run 31736041001](https://github.com/simonsystem609/ExcelsisViewer/actions/runs/31736041001).
+  The CodeQL, Dependabot, and secret-scanning APIs each reported zero open
+  alerts after that run.
+- [Pages run 31736039759](https://github.com/simonsystem609/ExcelsisViewer/actions/runs/31736039759)
+  deployed the exact release commit. The live page was byte-identical to the
+  local `index.html` (SHA-256
+  `5DCE4E72005DC2ED35414957249AAB071997CC566B1E20BB5D66D250F7580677`),
+  and the live raw README was byte-identical to the local file (SHA-256
+  `4671C74AEB3FA1CF7846C852CCF041C50F4C5FA6D5D3B34F960EF17B4CC1FD5A`).
+- Repository hardening remained enabled: strict required CodeQL checks,
+  administrator enforcement, conversation resolution, pull-request flow,
+  blocked force pushes and branch deletion, read-only default Actions token
+  permissions, immutable releases, and HTTPS-only Pages from `main`.
