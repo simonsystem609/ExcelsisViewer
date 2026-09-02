@@ -154,28 +154,29 @@
       </p>
 
       <div id="scaleModeChooser" class="repair-method-options">
-        <button id="scaleModeXYBtn" class="repair-method-option" type="button">
-          <span>Independent X / Y</span>
-          <small>Set separate horizontal and vertical scale factors</small>
+        <button id="scaleModePercentBtn" class="repair-method-option" type="button">
+          <span>By percentage</span>
+          <small>One scale factor, or separate X / Y factors with Non-uniform</small>
         </button>
         <button id="scaleModeLineBtn" class="repair-method-option" type="button">
           <span>Along a line</span>
-          <small>Pick a line in the drawing and scale the whole file so it matches a target length</small>
-        </button>
-        <button id="scaleModeUniformBtn" class="repair-method-option" type="button">
-          <span>Uniform</span>
-          <small>Scale everything by one factor, keeping proportions</small>
+          <small>Pick a target length; optionally scale parallel and perpendicular independently</small>
         </button>
       </div>
+
+      <label id="scaleNonUniformRow" class="scale-toggle" hidden>
+        <input id="scaleNonUniformToggle" type="checkbox">
+        <span>Non-uniform</span>
+      </label>
 
       <fieldset id="scaleXYFieldset" class="modal-fieldset" hidden>
         <legend>Independent X / Y</legend>
         <div class="number-row">
-          <span>Scale X (%)</span>
+          <label for="scaleXInput">Scale X (%)</label>
           <input id="scaleXInput" type="number" value="100" step="0.1" min="0.001">
         </div>
         <div class="number-row">
-          <span>Scale Y (%)</span>
+          <label for="scaleYInput">Scale Y (%)</label>
           <input id="scaleYInput" type="number" value="100" step="0.1" min="0.001">
         </div>
       </fieldset>
@@ -186,15 +187,22 @@
         <button id="scalePickLineBtn" type="button">Pick line</button>
         <div id="scaleLinePickedInfo" class="modal-hint" hidden></div>
         <div class="number-row">
-          <span>New length (mm)</span>
+          <label id="scaleLineLengthLabel" for="scaleLineLengthInput">New length (mm)</label>
           <input id="scaleLineLengthInput" type="number" step="0.001" min="0.001" disabled>
         </div>
+        <div id="scaleLinePerpendicularRow" class="number-row" hidden>
+          <label for="scaleLinePerpendicularInput">Perpendicular to line (%)</label>
+          <input id="scaleLinePerpendicularInput" type="number" value="100" step="0.1" min="0.001" disabled>
+        </div>
+        <p id="scaleLineNonUniformHint" class="modal-hint" hidden>
+          The target length controls the parallel scale. Perpendicular 100% keeps the cross-line size unchanged.
+        </p>
       </fieldset>
 
       <fieldset id="scaleUniformFieldset" class="modal-fieldset" hidden>
         <legend>Uniform</legend>
         <div class="number-row">
-          <span>Scale factor (%)</span>
+          <label for="scaleUniformInput">Scale factor (%)</label>
           <input id="scaleUniformInput" type="number" value="100" step="0.1" min="0.001">
         </div>
       </fieldset>

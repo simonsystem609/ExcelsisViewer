@@ -28,6 +28,13 @@ import {
   rotationDegreesToAlignXAxis,
 } from "./rotation-utils.mjs";
 import { rotateEntityInPlace } from "./transform-utils.mjs";
+import {
+  buildAxisScaleReplacementPairs,
+  ellipseParameterRange,
+  lineScaleOptions,
+  sampleEllipseDefinition,
+  scaleEntitiesByAxesInPlace,
+} from "./axis-scale-utils.mjs";
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
@@ -83,9 +90,10 @@ const ui = {
   scaleBtn: document.getElementById("scaleBtn"),
   scaleDialog: document.getElementById("scaleDialog"),
   scaleModeChooser: document.getElementById("scaleModeChooser"),
-  scaleModeXYBtn: document.getElementById("scaleModeXYBtn"),
+  scaleModePercentBtn: document.getElementById("scaleModePercentBtn"),
   scaleModeLineBtn: document.getElementById("scaleModeLineBtn"),
-  scaleModeUniformBtn: document.getElementById("scaleModeUniformBtn"),
+  scaleNonUniformRow: document.getElementById("scaleNonUniformRow"),
+  scaleNonUniformToggle: document.getElementById("scaleNonUniformToggle"),
   scaleXYFieldset: document.getElementById("scaleXYFieldset"),
   scaleXInput: document.getElementById("scaleXInput"),
   scaleYInput: document.getElementById("scaleYInput"),
@@ -94,6 +102,10 @@ const ui = {
   scalePickLineBtn: document.getElementById("scalePickLineBtn"),
   scaleLinePickedInfo: document.getElementById("scaleLinePickedInfo"),
   scaleLineLengthInput: document.getElementById("scaleLineLengthInput"),
+  scaleLineLengthLabel: document.getElementById("scaleLineLengthLabel"),
+  scaleLinePerpendicularRow: document.getElementById("scaleLinePerpendicularRow"),
+  scaleLinePerpendicularInput: document.getElementById("scaleLinePerpendicularInput"),
+  scaleLineNonUniformHint: document.getElementById("scaleLineNonUniformHint"),
   scaleUniformFieldset: document.getElementById("scaleUniformFieldset"),
   scaleUniformInput: document.getElementById("scaleUniformInput"),
   scaleBackBtn: document.getElementById("scaleBackBtn"),
@@ -657,42 +669,6 @@ function sampleBSpline(degree, controlPoints, knots, sampleCount) {
   return out;
 }
 
-function sampleEllipsePoints(center, majorAxis, ratio, startParam, endParam, sampleCount) {
-  // DXF ELLIPSE parametric form:
-  //   P(t) = center + cos(t) * majorAxis + sin(t) * minorAxis
-  // where minorAxis is perpendicular to majorAxis (rotated +90 in plane)
-  // and |minorAxis| = ratio * |majorAxis|.
-  const majorLen = Math.hypot(majorAxis.x, majorAxis.y);
-  if (!(majorLen > 0)) return [];
-  const samples = Math.max(2, sampleCount | 0);
-  const cosA = majorAxis.x / majorLen;
-  const sinA = majorAxis.y / majorLen;
-  const minorLen = majorLen * Math.abs(ratio || 1);
-  let tStart = Number.isFinite(startParam) ? startParam : 0;
-  let tEnd = Number.isFinite(endParam) ? endParam : Math.PI * 2;
-  // Some exporters write end < start for closed full ellipses; normalize.
-  if (tEnd <= tStart) tEnd = tStart + Math.PI * 2;
-  const points = [];
-  for (let i = 0; i <= samples; i++) {
-    const t = tStart + (tEnd - tStart) * (i / samples);
-    const lx = majorLen * Math.cos(t);
-    const ly = minorLen * Math.sin(t);
-    points.push({
-      x: center.x + lx * cosA - ly * sinA,
-      y: center.y + lx * sinA + ly * cosA,
-    });
-  }
-  // Dedup consecutive coincident points
-  const out = [];
-  for (const p of points) {
-    if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
-    const last = out[out.length - 1];
-    if (last && Math.abs(last.x - p.x) < 1e-9 && Math.abs(last.y - p.y) < 1e-9) continue;
-    out.push(p);
-  }
-  return out;
-}
-
 function parseSplinePoints(pairs) {
   const fitPoints = [];
   const controlPoints = [];
@@ -805,12 +781,17 @@ function parseEntity(type, pairs, start, end, id) {
     }
     const center = { x: cx, y: cy };
     const majorAxis = { x: mx, y: my };
-    const tStart = Number.isFinite(startParam) ? startParam : 0;
-    const tEnd = Number.isFinite(endParam) ? endParam : Math.PI * 2;
-    const sweep = Math.abs(tEnd - tStart);
-    const fullCircle = Math.abs(sweep - Math.PI * 2) < 1e-6 || sweep <= 0;
-    const sampleCount = Math.max(32, Math.ceil(sweep * 32 / Math.PI));
-    const polyPoints = sampleEllipsePoints(center, majorAxis, ratio, tStart, fullCircle ? tStart + Math.PI * 2 : tEnd, sampleCount);
+    const range = ellipseParameterRange(startParam, endParam);
+    const ellipseDefinition = {
+      center,
+      majorAxis,
+      ratio: Math.abs(ratio),
+      startParam: range.startParam,
+      endParam: range.endParam,
+      sweep: range.sweep,
+      full: range.full,
+    };
+    const polyPoints = sampleEllipseDefinition(ellipseDefinition);
     if (polyPoints.length < 2) {
       entity.supported = false;
       return entity;
@@ -818,7 +799,8 @@ function parseEntity(type, pairs, start, end, id) {
     entity.originalType = "ELLIPSE";
     entity.type = "LWPOLYLINE";
     entity.points = polyPoints.map((p) => ({ x: p.x, y: p.y, bulge: 0 }));
-    entity.closed = fullCircle;
+    entity.closed = range.full;
+    entity.ellipseDefinition = ellipseDefinition;
     entity.supported = true;
   } else if (type === "SPLINE") {
     // SPLINE entities are converted to a sampled polyline so the downstream
@@ -2781,53 +2763,27 @@ async function rotateCurrentDrawingByLine() {
 }
 
 // --- Scale ---------------------------------------------------------------
-// Independent-axis version of scalePoint/scaleEntities (app.js:2200/2185).
-// Kept separate from those so the existing feature-size-editing callers
-// (setEntitiesSize, offsetEntitiesAroundCenter) are untouched. CIRCLE/ARC
-// can't represent a true ellipse, so under non-uniform scale their radius
-// is scaled by the geometric mean of scaleX/scaleY (exact when scaleX===scaleY).
-function scalePointXY(p, center, scaleX, scaleY) {
-  return {
-    x: center.x + (p.x - center.x) * scaleX,
-    y: center.y + (p.y - center.y) * scaleY,
-  };
-}
-
-function scaleEntitiesXY(entities, center, scaleX, scaleY) {
-  const radiusScale = Math.sqrt(Math.abs(scaleX) * Math.abs(scaleY));
-  for (const e of entities) {
-    if (e.type === "LINE") {
-      const p1 = scalePointXY({ x: e.x1, y: e.y1 }, center, scaleX, scaleY);
-      const p2 = scalePointXY({ x: e.x2, y: e.y2 }, center, scaleX, scaleY);
-      e.x1 = p1.x; e.y1 = p1.y; e.x2 = p2.x; e.y2 = p2.y;
-    } else if (e.type === "CIRCLE" || e.type === "ARC") {
-      const c = scalePointXY({ x: e.cx, y: e.cy }, center, scaleX, scaleY);
-      e.cx = c.x; e.cy = c.y; e.r *= radiusScale;
-    } else if (e.type === "LWPOLYLINE") {
-      e.points = e.points.map((p) => ({ ...scalePointXY(p, center, scaleX, scaleY), bulge: p.bulge || 0 }));
-    } else {
-      continue;
-    }
-    e.modified = true;
-  }
-}
-
-function scaleSupportedGeometry(scaleX, scaleY) {
+function scaleSupportedGeometry(scaleX, scaleY, axisAngleRadians = 0) {
   const entities = state.doc?.entities
     ?.filter((e) => e.supported && !e.deleted && !e.virtual && GEOM_TYPES.has(e.type)) || [];
   if (!entities.length) return { ok: false, error: "No supported geometry found to scale." };
   if (!(Number.isFinite(scaleX) && scaleX > 0) || !(Number.isFinite(scaleY) && scaleY > 0)) {
     return { ok: false, error: "Scale factors must be positive numbers." };
   }
-  scaleEntitiesXY(entities, { x: 0, y: 0 }, scaleX, scaleY);
-  return { ok: true, scaled: entities.length };
+  const result = scaleEntitiesByAxesInPlace(entities, { x: 0, y: 0 }, scaleX, scaleY, axisAngleRadians);
+  return { ok: true, ...result };
 }
 
 function setScaleStep(step) {
+  const nonUniform = ui.scaleNonUniformToggle.checked;
   ui.scaleModeChooser.hidden = step !== "chooser";
-  ui.scaleXYFieldset.hidden = step !== "xy";
+  ui.scaleNonUniformRow.hidden = step === "chooser";
+  ui.scaleXYFieldset.hidden = step !== "percent" || !nonUniform;
   ui.scaleLineFieldset.hidden = step !== "line";
-  ui.scaleUniformFieldset.hidden = step !== "uniform";
+  ui.scaleUniformFieldset.hidden = step !== "percent" || nonUniform;
+  ui.scaleLinePerpendicularRow.hidden = !nonUniform;
+  ui.scaleLineNonUniformHint.hidden = !nonUniform;
+  ui.scaleLineLengthLabel.textContent = nonUniform ? "Parallel to line: new length (mm)" : "New length (mm)";
   ui.scaleBackBtn.hidden = step === "chooser";
   ui.scaleApplyBtn.hidden = step === "chooser";
 }
@@ -2837,6 +2793,7 @@ function resetScaleLinePick() {
   ui.scaleLinePickedInfo.textContent = "";
   ui.scaleLineLengthInput.value = "";
   ui.scaleLineLengthInput.disabled = true;
+  ui.scaleLinePerpendicularInput.disabled = true;
   ui.scaleLineHint.textContent = 'Click "Pick line", then click a straight line in the drawing.';
 }
 
@@ -2914,14 +2871,16 @@ function pickLineForScale() {
   });
 }
 
-// Promise-based dialog flow: returns { scaleX, scaleY } or null if cancelled.
+// Returns factors and optional line-relative axis angle, or null if cancelled.
 function askScaleOptions() {
   return new Promise((resolve) => {
+    ui.scaleNonUniformToggle.checked = false;
     setScaleStep("chooser");
     resetScaleLinePick();
     ui.scaleXInput.value = "100";
     ui.scaleYInput.value = "100";
     ui.scaleUniformInput.value = "100";
+    ui.scaleLinePerpendicularInput.value = "100";
     let pickedLine = null;
     let step = "chooser";
 
@@ -2934,9 +2893,19 @@ function askScaleOptions() {
       step = next;
       setScaleStep(next);
     };
-    const onXY = () => goStep("xy");
+    const onPercent = () => goStep("percent");
     const onLine = () => goStep("line");
-    const onUniform = () => goStep("uniform");
+    const onNonUniform = () => {
+      if (step === "percent") {
+        if (ui.scaleNonUniformToggle.checked) {
+          ui.scaleXInput.value = ui.scaleUniformInput.value;
+          ui.scaleYInput.value = ui.scaleUniformInput.value;
+        } else {
+          ui.scaleUniformInput.value = ui.scaleXInput.value;
+        }
+      }
+      setScaleStep(step);
+    };
     const onBack = () => {
       pickedLine = null;
       resetScaleLinePick();
@@ -2956,31 +2925,32 @@ function askScaleOptions() {
       ui.scaleLinePickedInfo.textContent = `Picked line length: ${fmt(length)} mm`;
       ui.scaleLineHint.textContent = "Enter the new length this line should have.";
       ui.scaleLineLengthInput.disabled = false;
-      ui.scaleLineLengthInput.value = fmt(length);
+      ui.scaleLinePerpendicularInput.disabled = false;
+      ui.scaleLineLengthInput.value = String(Number(length.toPrecision(12)));
     };
     const onApply = () => {
-      if (step === "xy") {
-        const x = Number(ui.scaleXInput.value) / 100;
-        const y = Number(ui.scaleYInput.value) / 100;
-        if (!(x > 0) || !(y > 0)) { alert("Enter positive scale factors."); return; }
+      if (step === "percent") {
+        const nonUniform = ui.scaleNonUniformToggle.checked;
+        const x = Number(nonUniform ? ui.scaleXInput.value : ui.scaleUniformInput.value) / 100;
+        const y = nonUniform ? Number(ui.scaleYInput.value) / 100 : x;
+        if (!Number.isFinite(x) || !Number.isFinite(y) || !(x > 0) || !(y > 0)) {
+          alert("Enter positive finite scale factors."); return;
+        }
         finish({ scaleX: x, scaleY: y });
-      } else if (step === "uniform") {
-        const s = Number(ui.scaleUniformInput.value) / 100;
-        if (!(s > 0)) { alert("Enter a positive scale factor."); return; }
-        finish({ scaleX: s, scaleY: s });
       } else if (step === "line") {
         if (!pickedLine) { alert("Pick a line first."); return; }
-        const newLength = Number(ui.scaleLineLengthInput.value);
-        if (!(newLength > 0)) { alert("Enter a positive target length."); return; }
-        const s = newLength / pickedLine.length;
-        if (!Number.isFinite(s) || s <= 0) { alert("Could not compute a scale factor from this line."); return; }
-        finish({ scaleX: s, scaleY: s });
+        try {
+          finish(lineScaleOptions(pickedLine.reference, ui.scaleLineLengthInput.value,
+            ui.scaleNonUniformToggle.checked, ui.scaleLinePerpendicularInput.value));
+        } catch (error) {
+          alert(error.message);
+        }
       }
     };
     const cleanup = () => {
-      ui.scaleModeXYBtn.removeEventListener("click", onXY);
+      ui.scaleModePercentBtn.removeEventListener("click", onPercent);
       ui.scaleModeLineBtn.removeEventListener("click", onLine);
-      ui.scaleModeUniformBtn.removeEventListener("click", onUniform);
+      ui.scaleNonUniformToggle.removeEventListener("change", onNonUniform);
       ui.scaleBackBtn.removeEventListener("click", onBack);
       ui.scaleApplyBtn.removeEventListener("click", onApply);
       ui.scalePickLineBtn.removeEventListener("click", onPickLine);
@@ -2988,9 +2958,9 @@ function askScaleOptions() {
       ui.scaleDialog.removeEventListener("cancel", onDialogCancel);
     };
 
-    ui.scaleModeXYBtn.addEventListener("click", onXY);
+    ui.scaleModePercentBtn.addEventListener("click", onPercent);
     ui.scaleModeLineBtn.addEventListener("click", onLine);
-    ui.scaleModeUniformBtn.addEventListener("click", onUniform);
+    ui.scaleNonUniformToggle.addEventListener("change", onNonUniform);
     ui.scaleBackBtn.addEventListener("click", onBack);
     ui.scaleApplyBtn.addEventListener("click", onApply);
     ui.scalePickLineBtn.addEventListener("click", onPickLine);
@@ -3045,7 +3015,7 @@ async function scaleCurrentDxf() {
   state.scaleBusy = true;
   syncUi();
   try {
-    const result = scaleSupportedGeometry(options.scaleX, options.scaleY);
+    const result = scaleSupportedGeometry(options.scaleX, options.scaleY, options.axisAngleRadians);
     if (!result.ok) throw new Error(result.error || "Scale failed.");
     const scaleText = serializeDxf();
 
@@ -8278,6 +8248,9 @@ function buildLwPolylinePairs(e) {
 }
 
 function updatedPairsForEntity(e) {
+  if (e.axisScaleReplacementEntities?.length) {
+    return buildAxisScaleReplacementPairs(e, formatNumber);
+  }
   // SPLINE / POLYLINE / ELLIPSE entities were converted to a sampled
   // LWPOLYLINE at parse time. If the user edited them (e.g. offset / scale),
   // we persist the edit by replacing the original block with a fresh

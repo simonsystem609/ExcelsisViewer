@@ -1,31 +1,30 @@
 # ExcelsisView
 
-ExcelsisView 1.1.25 is an open-source Windows viewer for DXF, DWG, regular
+ExcelsisView 1.1.27 is an open-source Windows viewer for DXF, DWG, regular
 PDF, and supported PRC/U3D 3D PDF documents. Document processing is local,
 and native document parsers run behind Windows process-containment and
 resource limits.
 
 ## Download
 
-- [Windows installer](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.25/ExcelsisView-Setup-1.1.25.exe)
-- [Release notes and all assets](https://github.com/simonsystem609/ExcelsisViewer/releases/tag/excelsis-view-v1.1.25)
-- [Exact corresponding-source archive](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.25/SOURCE-ExcelsisView-1.1.25.zip)
+- [Windows installer](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.27/ExcelsisView-Setup-1.1.27.exe)
+- [Release notes and all assets](https://github.com/simonsystem609/ExcelsisViewer/releases/tag/excelsis-view-v1.1.27)
+- [Exact corresponding-source archive](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.27/SOURCE-ExcelsisView-1.1.27.zip)
 - [SHA-256 checksums](SHA256SUMS.txt)
-- [Licensing and security audit](AUDIT-1.1.25.md)
+- [Licensing and security audit](AUDIT-1.1.27.md)
 
-Version 1.1.25 makes Update Center compare the installed Viewer and Helper
-versions with their fixed, immutable GitHub release feeds and re-checks the
-installed version immediately before any download. Equal or newer installed
-versions cannot be replaced with an older public release. Version 1.1.24 also
-added constrained update downloads and a DXF rotation split menu while keeping
-the main Rotate button as one-click clockwise rotation. The full PDF, PRC,
-U3D, DWG/DXF, containment, Explorer, source, updater, security, and
-packaged-byte gates were rerun against the exact release candidate.
+Version 1.1.27 adds a Non-uniform checkbox to percentage and line-reference
+scaling. Line mode can set a parallel target length and a separate perpendicular
+percentage; clearing the checkbox restores uniform scaling. Unequal scaling
+preserves connected arcs, circles, and bulged polylines as exact DXF ellipses.
+The installed-version-aware Update Center, rotation controls, PDF/3D PDF,
+DWG, and Explorer integration remain included. The standard clean-build,
+security, source, and packaged-byte gates passed for this exact release.
 
 The installer and ExcelsisView binaries are currently unsigned, so Windows
 may show a SmartScreen warning. Microsoft Defender was disabled in the build
-environment, so no Defender scan is claimed. Kaspersky 21.26 with 2026-08-13
-full bases scanned 10,995 objects across the exact release assets and unpacked payload
+environment, so no Defender scan is claimed. Kaspersky 21.26 with 2026-09-02
+full bases scanned 11,000 objects across the exact release assets and unpacked payload
 with zero detections or suspicions. Verify the installer SHA-256 before running
 it.
 
@@ -36,7 +35,7 @@ contains the application source, the pinned modified nanoPRC source, the
 pinned modified U3D source, the LibreDWG source archive, license texts, and
 the scripts used to rebuild the release.
 
-From `source/ExcelsisView-1.1.25/app-asar-extract` on Windows with Node.js 24,
+From `source/ExcelsisView-1.1.27/app-asar-extract` on Windows with Node.js 24,
 npm, PowerShell, the documented native prerequisites, and Zig 0.16.0:
 
 ```powershell
@@ -45,7 +44,7 @@ npm run dist
 ```
 
 See
-[`source/ExcelsisView-1.1.25/app-asar-extract/SOURCE.md`](source/ExcelsisView-1.1.25/app-asar-extract/SOURCE.md)
+[`source/ExcelsisView-1.1.27/app-asar-extract/SOURCE.md`](source/ExcelsisView-1.1.27/app-asar-extract/SOURCE.md)
 for the complete build requirements.
 
 ## Project links

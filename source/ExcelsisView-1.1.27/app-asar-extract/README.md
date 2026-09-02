@@ -1,7 +1,24 @@
 # ExcelsisView
 
-ExcelsisView 1.1.25 is a Windows viewer for DXF, DWG, regular PDF, and 3D PDF
+ExcelsisView 1.1.27 is a Windows viewer for DXF, DWG, regular PDF, and 3D PDF
 documents.
+
+Version 1.1.27 adds a Non-uniform checkbox to percentage and line-reference
+scaling. Percentage mode switches between one factor and independent X/Y
+percentages. Line mode switches between uniform target-length scaling and a
+parallel target length plus a perpendicular percentage (100% is unchanged).
+The line defines the scale axes, not a drawing rotation; both modes stay
+anchored at the drawing origin and preserve exact elliptical geometry.
+
+Version 1.1.26 keeps connected CAD geometry closed when the drawing is scaled
+by different X and Y factors. Circular arcs, circles, and polyline bulges become
+mathematically exact DXF ellipse entities instead of retaining an incompatible
+geometric-mean radius; the viewer uses a smooth sampled preview while the saved
+DXF retains the exact conic. Uniform scaling and scale-from-line keep their
+existing circular ARC/CIRCLE and bulge behavior. Wrapped partial DXF ellipses
+are also distinguished correctly from full ellipses. The live dependency gate
+additionally pins patched `@xmldom/xmldom` 0.8.15 and `fast-uri` 3.1.7 after
+new advisories superseded the previous build-only dependency versions.
 
 Version 1.1.25 makes Update Center compare the currently installed application
 versions with the validated latest public releases. It reads the fixed Viewer
@@ -74,7 +91,7 @@ follow the currently open format, including DXF/DWG navigation and DWG-to-DXF
 Save As. Windows Explorer uses the matching per-format icon as its fallback in
 Details, List, and other modes where it does not display document thumbnails;
 thumbnail-capable views continue to use the existing thumbnail provider. The
-release also pins the fixed brace-expansion 5.0.9, fast-uri 3.1.5, and Undici
+release also pins the fixed brace-expansion 5.0.9, fast-uri 3.1.7, and Undici
 6.28.0/7.29.0 transitive build dependencies after the current advisory gate
 identified their superseded versions.
 

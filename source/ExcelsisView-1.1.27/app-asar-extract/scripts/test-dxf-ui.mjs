@@ -8,6 +8,7 @@ const read = (relativePath) => fs.readFileSync(path.join(projectRoot, relativePa
 const html = read("modules/dxf/index.html");
 const styles = read("modules/dxf/styles.css");
 const application = read("modules/dxf/app.js");
+const axisScale = read("modules/dxf/axis-scale-utils.mjs");
 const preload = read("preload.cjs");
 const main = read("main.cjs");
 
@@ -135,6 +136,28 @@ assert.match(
   /state\.readOnlyReason === "dwg-conversion"[\s\S]{0,1200}Save As to write the rotated drawing as DXF/,
   "Converted DWGs must allow rotation while keeping the original DWG unchanged.",
 );
+assert.match(
+  application,
+  /scaleEntitiesByAxesInPlace\(entities,\s*\{ x: 0, y: 0 \},\s*scaleX,\s*scaleY,\s*axisAngleRadians\)/,
+  "Whole-file X/Y scaling must use the conic-aware axis transform.",
+);
+assert.match(
+  application,
+  /axisScaleReplacementEntities[\s\S]{0,300}buildAxisScaleReplacementPairs\(e,\s*formatNumber\)/,
+  "Non-uniformly scaled circular geometry must serialize as exact DXF ellipses.",
+);
+assert.match(axisScale, /export function buildAxisScaleReplacementPairs/);
+assert.match(axisScale, /isUniformAxisScale|exactEllipseReplacements/);
+assert.match(html, /id="scaleNonUniformToggle" type="checkbox"/);
+assert.match(html, /Perpendicular to line \(%\)/);
+assert.match(application, /Parallel to line: new length \(mm\)/);
+assert.match(styles, /#scaleDialog \[hidden\][\s\S]{0,50}display: none !important/);
+assert.match(application, /lineScaleOptions\(pickedLine\.reference/);
+assert.doesNotMatch(
+  application,
+  /radiusScale\s*=\s*Math\.sqrt/,
+  "The disconnected geometric-mean arc scaling path must not return.",
+);
 
 console.log(JSON.stringify({
   splitSaveMenu: true,
@@ -145,4 +168,7 @@ console.log(JSON.stringify({
   savedBodyCenteredRotation: true,
   splitRotationMenu: true,
   arbitraryAndLineRotation: true,
+  conicAwareAxisScaling: true,
+  nonUniformToggle: true,
+  lineRelativeScale: true,
 }));

@@ -575,6 +575,25 @@ input {
   border-radius: 8px;
 }
 
+#scaleDialog [hidden] {
+  display: none !important;
+}
+
+#scaleDialog .number-row,
+.scale-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.scale-toggle {
+  margin: 4px 0 12px;
+}
+
+.scale-toggle input {
+  accent-color: var(--accent);
+}
+
 .modal-fieldset legend {
   padding: 0 5px;
   color: var(--muted);
