@@ -50,7 +50,7 @@ const pdfLoaders = [
 ];
 const pkg = JSON.parse(read("package.json"));
 
-assert.equal(pkg.version, "1.1.25");
+assert.equal(pkg.version, "1.1.27");
 assert.equal(pkg.devDependencies.electron, "43.3.0");
 assert.equal(pkg.devDependencies["pdfjs-dist"], "6.2.108");
 assert.equal(pkg.devDependencies.three, "0.160.0");
@@ -384,7 +384,7 @@ assert.doesNotMatch(
 );
 assert.match(
   sourceDocument,
-  /SOURCE-ExcelsisView-1\.1\.25\.zip/,
+  /SOURCE-ExcelsisView-1\.1\.27\.zip/,
   "The exact installer-adjacent application source is not documented.",
 );
 assert.match(
@@ -409,11 +409,12 @@ assert.doesNotMatch(
 );
 assert.match(notices, /5c141d9f0d366357e2b7cf93af2eade284a334be/, "The pinned U3D source is not documented.");
 assert.deepEqual(pkg.overrides, {
+  "@xmldom/xmldom": "0.8.15",
   "@electron/get": {
     "undici": "7.29.0",
   },
   "brace-expansion": "5.0.9",
-  "fast-uri": "3.1.5",
+  "fast-uri": "3.1.7",
   "js-yaml": "4.3.1",
   "node-gyp": {
     "undici": "6.28.0",
