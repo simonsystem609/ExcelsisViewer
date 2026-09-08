@@ -1,6 +1,6 @@
 # ExcelsisView third-party notices
 
-ExcelsisView 1.1.27 is licensed at product level under the GNU Affero General
+ExcelsisView 1.1.28 is licensed at product level under the GNU Affero General
 Public License version 3 or later (AGPL-3.0-or-later). See `LICENSE.txt`.
 Component-specific licenses remain in force; this inventory covers the
 libraries and build components distributed in the Windows installer. Exact

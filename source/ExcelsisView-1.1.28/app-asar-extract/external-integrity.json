@@ -1,11 +1,11 @@
 {
   "format": "Excelsis external runtime integrity 1",
-  "version": "1.1.27",
+  "version": "1.1.28",
   "files": [
     {
       "path": "native/nano_prc_app_export.exe",
       "bytes": 937472,
-      "sha256": "befd365d866248e12a15bb4236475b4d9817cbcae5473405f14f85701a8c9226"
+      "sha256": "1106889bbe21331d774838be29dce5dd80f1b9132cc55232c84b58bbe3a2980d"
     },
     {
       "path": "native/process-guard.exe",
@@ -15,12 +15,12 @@
     {
       "path": "native/u3d/IFXCore.dll",
       "bytes": 5103451,
-      "sha256": "33d6e92e003355ebebf7ad74bdcfc31e7edd07e70a544dab0f433f7752c4d375"
+      "sha256": "48e7cb91b038f1e6cae48c2a2c1a9ec06f5ba2f6d8a6c1efab2fe729884a3cc7"
     },
     {
       "path": "native/u3d/IFXImporting.dll",
       "bytes": 989624,
-      "sha256": "a4d1b84cc8fde7eadf1dfd65bb74d02c6d27d826639d421067f35e7832d076cf"
+      "sha256": "a656765a09380daa8a1b62e084feda5a3afce112dbdbc4d389bdfe212a8908e6"
     },
     {
       "path": "native/u3d/libwinpthread-1.dll",
@@ -30,12 +30,12 @@
     {
       "path": "native/u3d/u3d_app_export.exe",
       "bytes": 3157841,
-      "sha256": "de9c0dd89f9ff8500273400d709ca54465f801aadfab8b9db83da5b51f675dec"
+      "sha256": "04d4c71c7d192be409683d101e5ea74ac7a59a18b5e7f8e12380ddfb53bd38db"
     },
     {
       "path": "shell/ExcelsisDxfThumbnailProvider.dll",
       "bytes": 308224,
-      "sha256": "e61071679d9e3bc6ce138919cad8f09068e0ddc96ff64a9b58f86a78d7f853ba"
+      "sha256": "72c97ca3eb90a1e6a39690ee534fae0f216243335cfb06d811255d9949eef2be"
     },
     {
       "path": "third_party/libredwg/dwg2dxf.exe",

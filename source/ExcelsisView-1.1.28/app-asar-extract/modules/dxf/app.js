@@ -35,6 +35,13 @@ import {
   sampleEllipseDefinition,
   scaleEntitiesByAxesInPlace,
 } from "./axis-scale-utils.mjs";
+import {
+  cornerTreatmentLimit,
+  linePairCornerTarget,
+  planLinePairTreatment,
+  planPolylineCornerTreatment,
+  polylineCornerTarget,
+} from "./corner-treatment.mjs";
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
@@ -62,6 +69,7 @@ const ui = {
   dissolveBtn: document.getElementById("dissolveBtn"),
   rebuildBtn: document.getElementById("rebuildBtn"),
   fixOuterContourBtn: document.getElementById("fixOuterContourBtn"),
+  addChamferFilletBtn: document.getElementById("addChamferFilletBtn"),
   removeChamferFilletBtn: document.getElementById("removeChamferFilletBtn"),
   showOriginalBtn: document.getElementById("showOriginalBtn"),
   prevBtn: document.getElementById("prevBtn"),
@@ -126,6 +134,15 @@ const ui = {
   cleanupRelaxedToggle: document.getElementById("cleanupRelaxedToggle"),
   cleanupApplyBtn: document.getElementById("cleanupApplyBtn"),
   cleanupCancelBtn: document.getElementById("cleanupCancelBtn"),
+  cornerTreatmentDialog: document.getElementById("cornerTreatmentDialog"),
+  cornerTreatmentTarget: document.getElementById("cornerTreatmentTarget"),
+  cornerTreatmentChamfer: document.getElementById("cornerTreatmentChamfer"),
+  cornerTreatmentFillet: document.getElementById("cornerTreatmentFillet"),
+  cornerTreatmentSizeLabel: document.getElementById("cornerTreatmentSizeLabel"),
+  cornerTreatmentSizeInput: document.getElementById("cornerTreatmentSizeInput"),
+  cornerTreatmentHint: document.getElementById("cornerTreatmentHint"),
+  cornerTreatmentApplyBtn: document.getElementById("cornerTreatmentApplyBtn"),
+  cornerTreatmentCancelBtn: document.getElementById("cornerTreatmentCancelBtn"),
 };
 
 const state = {
@@ -164,6 +181,9 @@ const state = {
   originalOverlayBusy: false,
   originalOverlaySourcePath: null,
   cleanupBusy: false,
+  cornerTreatmentBusy: false,
+  pickingCorner: false,
+  pickHoverCorner: null,
   lightweightFeatures: false,
 };
 
@@ -1737,6 +1757,9 @@ function renderCanvasNow() {
   if (state.pickingLine && state.pickHoverLineReference) {
     drawLineReference(state.pickHoverLineReference, "#39ff88", 3.2);
   }
+  if (state.pickingCorner && state.pickHoverCorner) {
+    drawCornerCandidate(state.pickHoverCorner);
+  }
   drawRepairCompareOverlay();
   drawDxfOriginMarker(ctx, worldToScreen({ x: 0, y: 0 }), {
     width: w,
@@ -2001,6 +2024,28 @@ function drawLineReference(reference, color, width) {
   ctx.beginPath();
   moveToWorld(reference.start);
   lineToWorld(reference.end);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawCornerCandidate(candidate) {
+  if (!candidate?.point) return;
+  for (const edge of candidate.edges || []) {
+    drawLineReference(edge, "#39ff88", 3.2);
+  }
+  const point = worldToScreen(candidate.point);
+  ctx.save();
+  ctx.translate(point.x, point.y);
+  ctx.fillStyle = "rgba(57, 255, 136, 0.2)";
+  ctx.strokeStyle = "#39ff88";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, -8);
+  ctx.lineTo(8, 0);
+  ctx.lineTo(0, 8);
+  ctx.lineTo(-8, 0);
+  ctx.closePath();
+  ctx.fill();
   ctx.stroke();
   ctx.restore();
 }
@@ -2331,6 +2376,435 @@ async function removeChamfersAndFillets() {
     state.cleanupBusy = false;
     syncUi();
     render();
+  }
+}
+
+// --- Add Chamfer / Fillet -------------------------------------------------
+function cornerCandidateForLinePair(lineA, lineB) {
+  if (lineA?.virtual || lineB?.virtual) {
+    throw new Error("Corners inside an INSERT block cannot be edited in place.");
+  }
+  if (lineA?.space !== lineB?.space) {
+    throw new Error("The two selected lines must be in the same DXF space.");
+  }
+  const target = linePairCornerTarget(lineA, lineB, { endpointTolerance: CONNECT_TOL });
+  return {
+    type: "line-pair",
+    lineAId: lineA.id,
+    lineBId: lineB.id,
+    target,
+    point: target.corner,
+    edges: [
+      { start: target.corner, end: target.farA },
+      { start: target.corner, end: target.farB },
+    ],
+  };
+}
+
+function cornerCandidateForPolyline(polyline, vertexIndex) {
+  if (polyline?.virtual) {
+    throw new Error("Corners inside an INSERT block cannot be edited in place.");
+  }
+  const target = polylineCornerTarget(polyline, vertexIndex, { bulgeTolerance: BULGE_TOL });
+  return {
+    type: "polyline-vertex",
+    entityId: polyline.id,
+    vertexIndex,
+    target,
+    point: target.corner,
+    edges: [
+      { start: target.corner, end: target.farA },
+      { start: target.corner, end: target.farB },
+    ],
+  };
+}
+
+function cornerSelectionScope() {
+  const ids = new Set(state.selectedEntityIds);
+  for (const feature of selectedFeatures()) {
+    for (const id of feature.entities) ids.add(id);
+  }
+  return ids.size ? ids : null;
+}
+
+function linePairInsideCornerScope(lineA, lineB, allowedIds) {
+  if (!allowedIds) return true;
+  if (allowedIds.size === 1) return allowedIds.has(lineA.id) || allowedIds.has(lineB.id);
+  return allowedIds.has(lineA.id) && allowedIds.has(lineB.id);
+}
+
+function nearestCornerCandidate(screenPoint, allowedIds = null) {
+  if (!state.doc) return null;
+  const hitRadiusPx = 13;
+  const scale = Math.max(Math.abs(state.view.scale), 1e-9);
+  const hitRadiusWorld = hitRadiusPx / scale;
+  const worldPoint = screenToWorld(screenPoint);
+  const nearby = nearbyEntities(screenPoint, hitRadiusPx + 2)
+    .filter((entity) => !entity.virtual && entity.space === state.doc.activeSpace);
+  const candidates = [];
+
+  for (const entity of nearby) {
+    if (entity.type !== "LWPOLYLINE" || (allowedIds && !allowedIds.has(entity.id))) continue;
+    for (let index = 0; index < entity.points.length; index += 1) {
+      const point = entity.points[index];
+      if (
+        Math.abs(point.x - worldPoint.x) > hitRadiusWorld
+        || Math.abs(point.y - worldPoint.y) > hitRadiusWorld
+      ) continue;
+      try {
+        const candidate = cornerCandidateForPolyline(entity, index);
+        const pointScreen = worldToScreen(candidate.point);
+        const candidateDistance = Math.hypot(pointScreen.x - screenPoint.x, pointScreen.y - screenPoint.y);
+        if (candidateDistance <= hitRadiusPx) {
+          candidates.push({ ...candidate, distance: candidateDistance, priority: 0 });
+        }
+      } catch {
+        // End vertices, arc-adjacent vertices, and degenerate corners are not
+        // eligible; keeping them out of the hover picker makes that visible.
+      }
+    }
+  }
+
+  const lines = nearby.filter((entity) => entity.type === "LINE");
+  for (let first = 0; first < lines.length; first += 1) {
+    for (let second = first + 1; second < lines.length; second += 1) {
+      const lineA = lines[first];
+      const lineB = lines[second];
+      if (!linePairInsideCornerScope(lineA, lineB, allowedIds)) continue;
+      try {
+        const candidate = cornerCandidateForLinePair(lineA, lineB);
+        const pointScreen = worldToScreen(candidate.point);
+        const candidateDistance = Math.hypot(pointScreen.x - screenPoint.x, pointScreen.y - screenPoint.y);
+        if (candidateDistance <= hitRadiusPx) {
+          candidates.push({ ...candidate, distance: candidateDistance, priority: 1 });
+        }
+      } catch {
+        // Only connected, non-collinear endpoint pairs are valid corners.
+      }
+    }
+  }
+
+  candidates.sort((left, right) => left.distance - right.distance || left.priority - right.priority);
+  return candidates[0] || null;
+}
+
+function pickCornerTarget({ allowedIds = null } = {}) {
+  return new Promise((resolve) => {
+    const interactionSnapshot = captureRotationInteraction();
+    state.pickingCorner = true;
+    state.pickHoverCorner = null;
+    state.hoverSnap = null;
+    ui.snapBadge.style.display = "none";
+    canvas.classList.add("picking-corner");
+    ui.hud.textContent = allowedIds
+      ? "Click one eligible vertex in the selected geometry. Adjacent edges must be straight. Press Esc to cancel."
+      : "Click one polyline vertex or a shared vertex between two LINE entities. Press Esc to cancel.";
+    syncUi();
+    ui.hud.textContent = allowedIds
+      ? "Click one eligible vertex in the selected geometry. Adjacent edges must be straight. Press Esc to cancel."
+      : "Click one polyline vertex or a shared vertex between two LINE entities. Press Esc to cancel.";
+    render();
+
+    const finish = (candidate) => {
+      cleanup();
+      state.pickingCorner = false;
+      state.pickHoverCorner = null;
+      canvas.classList.remove("picking-corner");
+      restoreRotationInteraction(interactionSnapshot);
+      syncUi();
+      render();
+      resolve(candidate || null);
+    };
+    const onMove = (event) => {
+      event.stopImmediatePropagation();
+      state.pickHoverCorner = nearestCornerCandidate(pointerPos(event), allowedIds);
+      render();
+    };
+    const blockPointer = (event) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+    const onClick = (event) => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      const candidate = nearestCornerCandidate(pointerPos(event), allowedIds);
+      if (candidate) {
+        finish(candidate);
+      } else {
+        ui.hud.textContent = "No eligible corner there. Pick a straight-sided polyline vertex or a shared LINE endpoint; Esc cancels.";
+      }
+    };
+    const onKey = (event) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      finish(null);
+    };
+    const cleanup = () => {
+      canvas.removeEventListener("mousemove", onMove, true);
+      canvas.removeEventListener("mousedown", blockPointer, true);
+      canvas.removeEventListener("mouseup", blockPointer, true);
+      canvas.removeEventListener("click", onClick, true);
+      canvas.removeEventListener("contextmenu", blockPointer, true);
+      window.removeEventListener("keydown", onKey, true);
+    };
+    canvas.addEventListener("mousemove", onMove, true);
+    canvas.addEventListener("mousedown", blockPointer, true);
+    canvas.addEventListener("mouseup", blockPointer, true);
+    canvas.addEventListener("click", onClick, true);
+    canvas.addEventListener("contextmenu", blockPointer, true);
+    window.addEventListener("keydown", onKey, true);
+  });
+}
+
+function cornerCandidateDescription(candidate) {
+  if (candidate.type === "line-pair") {
+    return `Two connected LINE entities at ${fmt(candidate.point.x)}, ${fmt(candidate.point.y)} mm.`;
+  }
+  return `Vertex ${candidate.vertexIndex + 1} of a LWPOLYLINE at ${fmt(candidate.point.x)}, ${fmt(candidate.point.y)} mm.`;
+}
+
+function askCornerTreatmentOptions(candidate) {
+  return new Promise((resolve) => {
+    const dialog = ui.cornerTreatmentDialog;
+    const form = dialog?.querySelector("form");
+    if (!dialog?.showModal || !form) {
+      resolve(null);
+      return;
+    }
+
+    ui.cornerTreatmentTarget.textContent = cornerCandidateDescription(candidate);
+    ui.cornerTreatmentChamfer.checked = true;
+    ui.cornerTreatmentFillet.checked = false;
+
+    const selectedKind = () => (ui.cornerTreatmentFillet.checked ? "fillet" : "chamfer");
+    const updateFields = ({ resetOversized = false } = {}) => {
+      const kind = selectedKind();
+      const limit = cornerTreatmentLimit(candidate.target, kind);
+      ui.cornerTreatmentSizeLabel.textContent = kind === "fillet" ? "Radius (mm)" : "Equal setback (mm)";
+      ui.cornerTreatmentHint.textContent = kind === "fillet"
+        ? `The radius is tangent to both edges. Use a value below ${fmt(limit)} mm.`
+        : `The same distance is measured back along both edges. Use a value below ${fmt(limit)} mm.`;
+      const current = Number(ui.cornerTreatmentSizeInput.value);
+      if (resetOversized || !(current > 0 && current < limit)) {
+        ui.cornerTreatmentSizeInput.value = formatNumber(Math.min(1, limit / 2));
+      }
+      ui.cornerTreatmentSizeInput.setCustomValidity("");
+    };
+    ui.cornerTreatmentSizeInput.value = "1";
+    updateFields({ resetOversized: true });
+
+    const finish = (value) => {
+      cleanup();
+      if (dialog.open) dialog.close();
+      resolve(value);
+    };
+    const onKindChange = () => updateFields();
+    const onSubmit = (event) => {
+      event.preventDefault();
+      const kind = selectedKind();
+      const size = Number(ui.cornerTreatmentSizeInput.value);
+      const limit = cornerTreatmentLimit(candidate.target, kind);
+      let validationMessage = "";
+      if (!(Number.isFinite(size) && size > 0)) {
+        validationMessage = "Enter a positive size.";
+      } else if (!(size < limit * (1 - 1e-8))) {
+        validationMessage = `Enter a value below ${fmt(limit)} mm.`;
+      }
+      ui.cornerTreatmentSizeInput.setCustomValidity(validationMessage);
+      if (validationMessage || !ui.cornerTreatmentSizeInput.reportValidity()) return;
+      finish({ kind, size });
+    };
+    const onCancelClick = () => finish(null);
+    const onDialogCancel = (event) => {
+      event.preventDefault();
+      finish(null);
+    };
+    const cleanup = () => {
+      form.removeEventListener("submit", onSubmit);
+      ui.cornerTreatmentChamfer.removeEventListener("change", onKindChange);
+      ui.cornerTreatmentFillet.removeEventListener("change", onKindChange);
+      ui.cornerTreatmentCancelBtn.removeEventListener("click", onCancelClick);
+      dialog.removeEventListener("cancel", onDialogCancel);
+    };
+    form.addEventListener("submit", onSubmit);
+    ui.cornerTreatmentChamfer.addEventListener("change", onKindChange);
+    ui.cornerTreatmentFillet.addEventListener("change", onKindChange);
+    ui.cornerTreatmentCancelBtn.addEventListener("click", onCancelClick);
+    dialog.addEventListener("cancel", onDialogCancel);
+    dialog.showModal();
+    requestAnimationFrame(() => ui.cornerTreatmentSizeInput.select());
+  });
+}
+
+const GENERATED_ENTITY_STYLE_CODES = new Set(["8", "6", "62", "67", "370", "410", "420", "430", "440", "48"]);
+
+function generatedEntityStylePairs(template) {
+  const pairs = [];
+  const seen = new Set();
+  for (const pair of template?.pairs || []) {
+    if (!GENERATED_ENTITY_STYLE_CODES.has(pair.code) || seen.has(pair.code)) continue;
+    pairs.push({ code: pair.code, value: pair.value });
+    seen.add(pair.code);
+  }
+  if (!seen.has("8")) pairs.push({ code: "8", value: String(template?.layer || "0") });
+  return pairs;
+}
+
+function buildCornerConnectorPairs(connector, template) {
+  const modern = (template?.pairs || []).some((pair) => pair.code === "100");
+  const pairs = [{ code: "0", value: connector.type }];
+  if (modern) pairs.push({ code: "100", value: "AcDbEntity" });
+  pairs.push(...generatedEntityStylePairs(template));
+  if (connector.type === "LINE") {
+    if (modern) pairs.push({ code: "100", value: "AcDbLine" });
+    pairs.push(
+      { code: "10", value: formatNumber(connector.x1) },
+      { code: "20", value: formatNumber(connector.y1) },
+      { code: "30", value: "0" },
+      { code: "11", value: formatNumber(connector.x2) },
+      { code: "21", value: formatNumber(connector.y2) },
+      { code: "31", value: "0" },
+    );
+  } else if (connector.type === "ARC") {
+    if (modern) pairs.push({ code: "100", value: "AcDbCircle" });
+    pairs.push(
+      { code: "10", value: formatNumber(connector.cx) },
+      { code: "20", value: formatNumber(connector.cy) },
+      { code: "30", value: "0" },
+      { code: "40", value: formatNumber(connector.r) },
+    );
+    if (modern) pairs.push({ code: "100", value: "AcDbArc" });
+    pairs.push(
+      { code: "50", value: formatNumber(connector.a1) },
+      { code: "51", value: formatNumber(connector.a2) },
+    );
+  } else {
+    throw new Error("Unsupported generated corner entity.");
+  }
+  return pairs;
+}
+
+function addCornerConnectorEntity(connector, template) {
+  const id = state.doc.entities.reduce((maximum, entity) => Math.max(maximum, entity.id || 0), 0) + 1;
+  const insert = findEntitiesInsertIndex();
+  const entity = {
+    id,
+    type: connector.type,
+    originalType: connector.type,
+    start: insert,
+    end: insert - 1,
+    pairs: [],
+    layer: template?.layer || "0",
+    space: template?.space || state.doc.activeSpace,
+    deleted: false,
+    modified: true,
+    featureId: null,
+    supported: true,
+    cornerTreatmentGenerated: true,
+    ...connector,
+  };
+  entity.pairs = buildCornerConnectorPairs(entity, template);
+  state.doc.entities.push(entity);
+  return entity;
+}
+
+function applyCornerTreatment(candidate, options) {
+  if (candidate.type === "line-pair") {
+    const lineA = entityById(candidate.lineAId);
+    const lineB = entityById(candidate.lineBId);
+    if (!lineA || !lineB || lineA.deleted || lineB.deleted) {
+      throw new Error("The selected lines are no longer available.");
+    }
+    if (lineA.virtual || lineB.virtual || lineA.space !== lineB.space) {
+      throw new Error("The selected line pair cannot be saved as an editable corner.");
+    }
+    const plan = planLinePairTreatment(lineA, lineB, {
+      ...options,
+      endpointTolerance: CONNECT_TOL,
+    });
+    const keepDissolved = state.dissolvedEntityIds.has(lineA.id)
+      && state.dissolvedEntityIds.has(lineB.id);
+    pushUndoSnapshot();
+    for (const update of plan.lineUpdates) {
+      const line = entityById(update.id);
+      Object.assign(line, update, { modified: true });
+    }
+    const connector = addCornerConnectorEntity(plan.connector, lineA);
+    if (keepDissolved) state.dissolvedEntityIds.add(connector.id);
+    state.selectedEntityIds.clear();
+    state.selectedFeatureIds.clear();
+    state.mode = "select";
+    clearMeasure();
+    clearStaleOriginalComparison();
+    rebuild();
+    if (keepDissolved) {
+      state.selectedEntityIds.add(lineA.id);
+      state.selectedEntityIds.add(lineB.id);
+      state.selectedEntityIds.add(connector.id);
+    } else {
+      const feature = featureByEntity(connector);
+      if (feature && isGroupedFeature(feature)) state.selectedFeatureIds.add(feature.id);
+      else state.selectedEntityIds.add(connector.id);
+    }
+    updateDirty();
+    render();
+    return `Added ${fmt(options.size)} mm ${options.kind === "fillet" ? "radius fillet" : "equal-setback chamfer"} to two LINE entities.`;
+  }
+
+  const polyline = entityById(candidate.entityId);
+  if (!polyline || polyline.deleted || polyline.virtual) {
+    throw new Error("The selected polyline vertex is no longer available.");
+  }
+  const plan = planPolylineCornerTreatment(polyline, candidate.vertexIndex, {
+    ...options,
+    bulgeTolerance: BULGE_TOL,
+  });
+  const keepDissolved = state.dissolvedEntityIds.has(polyline.id);
+  pushUndoSnapshot();
+  polyline.points = plan.points;
+  polyline.modified = true;
+  polyline.forceRebuildPairs = true;
+  state.selectedEntityIds.clear();
+  state.selectedFeatureIds.clear();
+  state.mode = "select";
+  clearMeasure();
+  clearStaleOriginalComparison();
+  rebuild();
+  const feature = featureByEntity(polyline);
+  if (keepDissolved || !feature || !isGroupedFeature(feature)) state.selectedEntityIds.add(polyline.id);
+  else state.selectedFeatureIds.add(feature.id);
+  updateDirty();
+  render();
+  return `Added ${fmt(options.size)} mm ${options.kind === "fillet" ? "radius fillet" : "equal-setback chamfer"} at polyline vertex ${candidate.vertexIndex + 1}.`;
+}
+
+async function addChamferOrFillet() {
+  if (!state.doc || state.cornerTreatmentBusy || state.readOnly) return;
+  state.cornerTreatmentBusy = true;
+  syncUi();
+  let completionMessage = "";
+  try {
+    const rawSelection = selectedRawEntities();
+    let candidate = null;
+    if (rawSelection.length === 2 && rawSelection.every((entity) => entity.type === "LINE")) {
+      candidate = cornerCandidateForLinePair(rawSelection[0], rawSelection[1]);
+    } else {
+      candidate = await pickCornerTarget({ allowedIds: cornerSelectionScope() });
+    }
+    if (!candidate) return;
+    const options = await askCornerTreatmentOptions(candidate);
+    if (!options) return;
+    completionMessage = applyCornerTreatment(candidate, options);
+  } catch (error) {
+    console.error(error);
+    alert(`Add Chamfer/Fillet failed: ${error.message || error}`);
+  } finally {
+    state.cornerTreatmentBusy = false;
+    syncUi();
+    render();
+    if (completionMessage) ui.hud.textContent = completionMessage;
   }
 }
 
@@ -3844,6 +4318,9 @@ function syncUi() {
   ui.dissolveBtn.disabled = !selectionHasDissolvableContours();
   ui.rebuildBtn.disabled = !state.dissolvedEntityIds.size;
   if (ui.fixOuterContourBtn) ui.fixOuterContourBtn.disabled = !state.doc || state.repairBusy || state.readOnly;
+  if (ui.addChamferFilletBtn) {
+    ui.addChamferFilletBtn.disabled = !state.doc || state.cornerTreatmentBusy || state.readOnly;
+  }
   if (ui.removeChamferFilletBtn) {
     ui.removeChamferFilletBtn.disabled = !state.doc || state.cleanupBusy || state.readOnly;
   }
@@ -8229,14 +8706,30 @@ function pushPair(out, pair) {
 function buildLwPolylinePairs(e) {
   const layer = e.layer || "0";
   const points = (e.points || []).filter((p) => Number.isFinite(p?.x) && Number.isFinite(p?.y));
-  const pairs = [
-    { code: "0",   value: "LWPOLYLINE" },
-    { code: "100", value: "AcDbEntity" },
-    { code: "8",   value: String(layer) },
-    { code: "100", value: "AcDbPolyline" },
-    { code: "90",  value: String(points.length) },
-    { code: "70",  value: e.closed ? "1" : "0" },
-  ];
+  let pairs = null;
+  if (e.pairs?.length) {
+    const firstVertexIndex = e.pairs.findIndex((pair, index) => index > 0 && pair.code === "10");
+    if (firstVertexIndex > 0 && String(e.pairs[0].value || "").trim().toUpperCase() === "LWPOLYLINE") {
+      // When a vertex is inserted, retain the original handle, owner, layer,
+      // linetype, color, width/elevation, and subclass header. Only the vertex
+      // count/closed flag and the vertex records themselves need rebuilding.
+      pairs = e.pairs.slice(0, firstVertexIndex).map((pair) => ({ ...pair }));
+      if (pairs.some((pair) => pair.code === "90")) setNthValue(pairs, "90", 1, points.length);
+      else pairs.push({ code: "90", value: String(points.length) });
+      if (pairs.some((pair) => pair.code === "70")) setNthValue(pairs, "70", 1, e.closed ? 1 : 0);
+      else pairs.push({ code: "70", value: e.closed ? "1" : "0" });
+    }
+  }
+  if (!pairs) {
+    pairs = [
+      { code: "0",   value: "LWPOLYLINE" },
+      { code: "100", value: "AcDbEntity" },
+      { code: "8",   value: String(layer) },
+      { code: "100", value: "AcDbPolyline" },
+      { code: "90",  value: String(points.length) },
+      { code: "70",  value: e.closed ? "1" : "0" },
+    ];
+  }
   for (const p of points) {
     pairs.push({ code: "10", value: formatNumber(p.x) });
     pairs.push({ code: "20", value: formatNumber(p.y) });
@@ -8526,11 +9019,63 @@ async function saveFile() {
 }
 
 function markDocumentSaved(text) {
+  // Rebase the live entity/pair model onto the exact bytes just written.
+  // Merely clearing `modified` leaves state.doc.pairs pointing at the file as
+  // originally opened; a later edit/save would then emit those stale slices
+  // and silently undo an earlier saved edit. Deleted entities can renumber
+  // everything that follows them, so restore interaction state through the
+  // surviving serialized order rather than assuming parser IDs stay equal.
+  const serializedEntities = [...state.doc.entities]
+    .filter((entity) => !entity.virtual && !entity.deleted)
+    .sort((left, right) => left.start - right.start);
+  const selectedEntityIds = new Set(state.selectedEntityIds);
+  const dissolvedEntityIds = new Set(state.dissolvedEntityIds);
+  const selectedFeatureEntityIds = selectedFeatures().map((feature) => [...feature.entities]);
+  const measureEntityIds = [...state.measureEntityIds];
+  const parsedDocument = parseDxf(text);
+  const reparsedEntities = [...parsedDocument.entities]
+    .filter((entity) => !entity.virtual)
+    .sort((left, right) => left.start - right.start);
+  const rebasedEntityIds = new Map();
+  if (serializedEntities.length === reparsedEntities.length) {
+    for (let index = 0; index < serializedEntities.length; index += 1) {
+      rebasedEntityIds.set(serializedEntities[index].id, reparsedEntities[index].id);
+    }
+  } else {
+    console.warn(
+      "Saved DXF reparsed with a different entity count; selection state was cleared safely.",
+      { before: serializedEntities.length, after: reparsedEntities.length },
+    );
+  }
+  state.doc = parsedDocument;
   state.dirty = false;
-  state.savedText = text;
+  state.savedText = canonicalDxfText(text);
   state.undoStack = [];
-  for (const e of state.doc.entities) e.modified = false;
+  state.selectedEntityIds.clear();
+  state.selectedFeatureIds.clear();
+  state.dissolvedEntityIds.clear();
+  state.hoverSnap = null;
+  buildFeatures();
+  for (const id of dissolvedEntityIds) {
+    const rebasedId = rebasedEntityIds.get(id);
+    if (rebasedId != null && entityById(rebasedId)) state.dissolvedEntityIds.add(rebasedId);
+  }
+  for (const id of selectedEntityIds) {
+    const rebasedId = rebasedEntityIds.get(id);
+    if (rebasedId != null && entityById(rebasedId)) state.selectedEntityIds.add(rebasedId);
+  }
+  for (const entityIds of selectedFeatureEntityIds) {
+    for (const id of entityIds) {
+      const rebasedId = rebasedEntityIds.get(id);
+      const feature = rebasedId == null ? null : featureByEntity(entityById(rebasedId));
+      if (feature) state.selectedFeatureIds.add(feature.id);
+    }
+  }
+  state.measureEntityIds = measureEntityIds
+    .map((id) => rebasedEntityIds.get(id))
+    .filter((id) => id != null && entityById(id));
   syncUi();
+  render();
 }
 
 async function saveFileAs() {
@@ -8827,6 +9372,7 @@ ui.fitBtn.addEventListener("click", fitView);
 ui.dissolveBtn.addEventListener("click", dissolveSelection);
 ui.rebuildBtn.addEventListener("click", rebuildRecognizedFeatures);
 if (ui.fixOuterContourBtn) ui.fixOuterContourBtn.addEventListener("click", runAutomaticOuterContourRepair);
+if (ui.addChamferFilletBtn) ui.addChamferFilletBtn.addEventListener("click", addChamferOrFillet);
 if (ui.removeChamferFilletBtn) ui.removeChamferFilletBtn.addEventListener("click", removeChamfersAndFillets);
 if (ui.showOriginalBtn) ui.showOriginalBtn.addEventListener("click", toggleOriginalOverlay);
 ui.prevBtn.addEventListener("click", () => goFile(-1));

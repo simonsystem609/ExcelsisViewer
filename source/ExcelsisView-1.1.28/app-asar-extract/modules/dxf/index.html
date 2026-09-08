@@ -51,6 +51,7 @@
         <button id="dissolveBtn" title="Dissolve selected closed contour into selectable lines and arcs">Dissolve</button>
         <button id="rebuildBtn" title="Rebuild recognized contours from dissolved raw entities">Rebuild</button>
         <button id="fixOuterContourBtn" title="Repair a noisy mesh-outline DXF by rebuilding the outside contour">Fix Outer Contour</button>
+        <button id="addChamferFilletBtn" title="Add a sized chamfer or tangent fillet using two connected selected lines or one picked vertex">Add Chamfer/Fillet</button>
         <button id="removeChamferFilletBtn" title="Conservatively remove narrow chamfer/fillet strips while keeping the outermost exterior edge and innermost hole edges">Remove Chamfer/Fillet</button>
         <button id="fitBtn" title="Fit drawing to view">Fit</button>
         <button id="showOriginalBtn" title="Overlay the original outline on top of this fixed DXF (enabled only when a _fixed/_fixedAL DXF is open)">Show Original</button>
@@ -269,6 +270,38 @@
         Show original vs fixed overlay after repair
       </label>
     </div>
+  </dialog>
+
+  <dialog id="cornerTreatmentDialog" class="modal">
+    <form class="modal-card">
+      <div class="modal-heading">
+        <h2>Add Chamfer / Fillet</h2>
+      </div>
+      <p id="cornerTreatmentTarget" class="modal-note"></p>
+      <fieldset class="modal-fieldset corner-treatment-kinds">
+        <legend>Corner type</legend>
+        <label>
+          <input id="cornerTreatmentChamfer" type="radio" name="cornerTreatmentKind" value="chamfer" checked>
+          <span><strong>Chamfer</strong> — straight cut with equal setbacks</span>
+        </label>
+        <label>
+          <input id="cornerTreatmentFillet" type="radio" name="cornerTreatmentKind" value="fillet">
+          <span><strong>Fillet</strong> — circular arc tangent to both edges</span>
+        </label>
+      </fieldset>
+      <label class="number-row modal-number-row">
+        <span id="cornerTreatmentSizeLabel">Equal setback (mm)</span>
+        <input id="cornerTreatmentSizeInput" type="number" value="1" step="any" min="0.000001" required>
+      </label>
+      <p id="cornerTreatmentHint" class="modal-hint"></p>
+      <p class="modal-hint">
+        Two-LINE selection requires connected endpoints. For a single vertex, start the command and click the highlighted straight-sided vertex.
+      </p>
+      <div class="modal-actions">
+        <button id="cornerTreatmentCancelBtn" type="button">Cancel</button>
+        <button id="cornerTreatmentApplyBtn" class="primary" type="submit">Add</button>
+      </div>
+    </form>
   </dialog>
 
   <dialog id="cleanupDialog" class="modal">
