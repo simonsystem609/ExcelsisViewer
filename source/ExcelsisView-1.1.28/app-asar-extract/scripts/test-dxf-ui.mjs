@@ -9,6 +9,7 @@ const html = read("modules/dxf/index.html");
 const styles = read("modules/dxf/styles.css");
 const application = read("modules/dxf/app.js");
 const axisScale = read("modules/dxf/axis-scale-utils.mjs");
+const cornerTreatment = read("modules/dxf/corner-treatment.mjs");
 const preload = read("preload.cjs");
 const main = read("main.cjs");
 
@@ -158,6 +159,48 @@ assert.doesNotMatch(
   /radiusScale\s*=\s*Math\.sqrt/,
   "The disconnected geometric-mean arc scaling path must not return.",
 );
+assert.match(html, /id=["']addChamferFilletBtn["']/);
+for (const id of [
+  "cornerTreatmentDialog", "cornerTreatmentChamfer", "cornerTreatmentFillet",
+  "cornerTreatmentSizeInput", "cornerTreatmentApplyBtn", "cornerTreatmentCancelBtn",
+]) {
+  assert.match(html, new RegExp(`id=["']${id}["']`), `Corner-treatment UI omits #${id}.`);
+}
+assert.match(
+  html,
+  /id="cornerTreatmentSizeInput"[^>]*step="any"[^>]*min="0\.000001"/,
+  "Corner sizes must accept the exact positive value shown instead of enforcing an offset step grid.",
+);
+assert.match(application, /addChamferFilletBtn\.addEventListener\(["']click["'],\s*addChamferOrFillet\)/);
+assert.match(
+  application,
+  /function pickCornerTarget[\s\S]{0,3200}addEventListener\("mousedown", blockPointer, true\)/,
+  "Single-vertex picking must capture canvas input before regular contour selection.",
+);
+assert.match(
+  application,
+  /rawSelection\.length === 2[\s\S]{0,180}entity\.type === "LINE"[\s\S]{0,300}cornerCandidateForLinePair/,
+  "The command must accept two directly selected LINE entities.",
+);
+assert.match(application, /planPolylineCornerTreatment\(polyline, candidate\.vertexIndex/);
+assert.match(application, /planLinePairTreatment\(lineA, lineB/);
+assert.match(
+  application,
+  /retain the original handle, owner, layer,[\s\S]{0,700}e\.pairs\.slice\(0, firstVertexIndex\)/,
+  "Rebuilding a polyline after inserting a corner must preserve its entity header and style.",
+);
+assert.match(cornerTreatment, /export function planLinePairTreatment/);
+assert.match(cornerTreatment, /export function planPolylineCornerTreatment/);
+assert.match(
+  application,
+  /function markDocumentSaved\(text\)[\s\S]{0,1200}parsedDocument = parseDxf\(text\)[\s\S]{0,900}state\.doc = parsedDocument/,
+  "A successful save must rebase pair spans so a later save cannot restore stale geometry.",
+);
+assert.match(
+  application,
+  /function markDocumentSaved\(text\)[\s\S]{0,1800}rebasedEntityIds\.set\(serializedEntities\[index\]\.id, reparsedEntities\[index\]\.id\)/,
+  "Save rebasing must remap interaction state when removed entities renumber later geometry.",
+);
 
 console.log(JSON.stringify({
   splitSaveMenu: true,
@@ -171,4 +214,6 @@ console.log(JSON.stringify({
   conicAwareAxisScaling: true,
   nonUniformToggle: true,
   lineRelativeScale: true,
+  addChamferFillet: true,
+  twoLineAndSingleVertexTargets: true,
 }));

@@ -1,7 +1,16 @@
 # ExcelsisView
 
-ExcelsisView 1.1.27 is a Windows viewer for DXF, DWG, regular PDF, and 3D PDF
+ExcelsisView 1.1.28 is a Windows viewer for DXF, DWG, regular PDF, and 3D PDF
 documents.
+
+Version 1.1.28 adds a parameterized Add Chamfer/Fillet command to the DXF
+editor. It accepts either two connected selected LINE entities or one
+click-picked straight-sided polyline/shared-LINE vertex. Chamfer size is an
+equal setback along both edges; fillet size is the exact tangent radius. The
+command trims the adjacent edges, writes exact LINE/ARC or LWPOLYLINE bulge
+geometry, preserves entity layer/style metadata, participates in Undo and
+normal DXF Save, and rejects arc-adjacent, collinear, ambiguous, or oversized
+corners before changing the drawing.
 
 Version 1.1.27 adds a Non-uniform checkbox to percentage and line-reference
 scaling. Percentage mode switches between one factor and independent X/Y

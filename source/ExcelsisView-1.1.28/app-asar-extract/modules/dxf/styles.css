@@ -252,7 +252,8 @@ input {
   display: block;
 }
 
-#canvas.picking-line {
+#canvas.picking-line,
+#canvas.picking-corner {
   cursor: crosshair;
 }
 
@@ -622,6 +623,24 @@ input {
 .modal-fieldset input {
   width: auto;
   height: auto;
+}
+
+.corner-treatment-kinds label {
+  align-items: flex-start;
+  padding: 7px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.corner-treatment-kinds input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  margin: 1px 0 0;
+  accent-color: var(--accent);
+}
+
+.corner-treatment-kinds span {
+  line-height: 1.35;
 }
 
 .modal-summary {
