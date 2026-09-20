@@ -108,7 +108,7 @@ third-party notices remain.
 ## Exact release artifacts
 
 The installer is 117,474,421 bytes. The application-source ZIP is 105,684,938
-bytes. [SHA256SUMS.txt](SHA256SUMS.txt) lists all 11 payload assets; together
+bytes. [SHA256SUMS.txt](https://github.com/simonsystem609/ExcelsisViewer/blob/8888bde77d744bf63ff10d201c56d3dc92c3c215/SHA256SUMS.txt) lists all 11 payload assets; together
 with the checksum manifest, the release contains 12 assets.
 
 ```text

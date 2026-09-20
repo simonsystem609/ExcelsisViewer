@@ -1,32 +1,30 @@
 # ExcelsisView
 
-ExcelsisView 1.1.28 is an open-source Windows viewer for DXF, DWG, regular
+ExcelsisView 1.1.29 is an open-source Windows viewer for DXF, DWG, regular
 PDF, and supported PRC/U3D 3D PDF documents. Document processing is local,
 and native document parsers run behind Windows process-containment and
 resource limits.
 
 ## Download
 
-- [Windows installer](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.28/ExcelsisView-Setup-1.1.28.exe)
-- [Release notes and all assets](https://github.com/simonsystem609/ExcelsisViewer/releases/tag/excelsis-view-v1.1.28)
-- [Exact corresponding-source archive](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.28/SOURCE-ExcelsisView-1.1.28.zip)
+- [Windows installer](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.29/ExcelsisView-Setup-1.1.29.exe)
+- [Release notes and all assets](https://github.com/simonsystem609/ExcelsisViewer/releases/tag/excelsis-view-v1.1.29)
+- [Exact corresponding-source archive](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.29/SOURCE-ExcelsisView-1.1.29.zip)
 - [SHA-256 checksums](SHA256SUMS.txt)
-- [Licensing and security audit](AUDIT-1.1.28.md)
+- [Licensing and security audit](AUDIT-1.1.29.md)
 
-Version 1.1.28 adds a parameterized DXF Add Chamfer/Fillet command. It accepts
-two connected LINE entities or one eligible straight-sided polyline/shared-LINE
-vertex, then writes an equal-setback chamfer or exact tangent-radius fillet.
-The command preserves entity style, supports Undo and normal Save, and rejects
-ambiguous, arc-adjacent, collinear, or oversized corners before changing the
-drawing. This release also fixes repeated DXF saves so a later edit cannot
-restore stale pre-save geometry. Existing scaling, Update Center, rotation,
-PDF/3D PDF, DWG, and Explorer integration remain included. The standard
-clean-build, security, source, and packaged-byte gates passed for this release.
+Version 1.1.29 adds shared, searchable Recents for each DXF, DWG or PDF section,
+opening or focusing documents without replacing unsaved work. DXF Connect with
+racetrack adds straight or curved tracks from two picked end-cap centers, with
+linked width/end radius, independent curve radius, preview and Undo/Save.
+The build-only js-yaml dependency is updated to patched 4.3.2. Existing editing,
+scaling, Update Center, rotation, PDF/3D PDF, DWG and Explorer integration remain.
+The clean-build, security, source and packaged-byte gates passed for this release.
 
 The installer and ExcelsisView binaries are currently unsigned, so Windows
 may show a SmartScreen warning. Microsoft Defender was disabled in the build
-environment, so no Defender scan is claimed. Kaspersky 21.26 with 2026-09-08
-full bases recursively scanned 472 objects in the exact installer with zero
+environment, so no Defender scan is claimed. Kaspersky 21.26 with 2026-09-19
+full bases recursively scanned 476 objects in an exact installer copy with zero
 detections or suspicions. Verify the installer SHA-256 before running it.
 
 ## Source and build
@@ -36,7 +34,7 @@ contains the application source, the pinned modified nanoPRC source, the
 pinned modified U3D source, the LibreDWG source archive, license texts, and
 the scripts used to rebuild the release.
 
-From `source/ExcelsisView-1.1.28/app-asar-extract` on Windows with Node.js 24,
+From `source/ExcelsisView-1.1.29/app-asar-extract` on Windows with Node.js 24,
 npm, PowerShell, the documented native prerequisites, and Zig 0.16.0:
 
 ```powershell
@@ -45,7 +43,7 @@ npm run dist
 ```
 
 See
-[`source/ExcelsisView-1.1.28/app-asar-extract/SOURCE.md`](source/ExcelsisView-1.1.28/app-asar-extract/SOURCE.md)
+[`source/ExcelsisView-1.1.29/app-asar-extract/SOURCE.md`](source/ExcelsisView-1.1.29/app-asar-extract/SOURCE.md)
 for the complete build requirements.
 
 ## Project links
