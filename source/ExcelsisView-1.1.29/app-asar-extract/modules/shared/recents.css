@@ -1,0 +1,55 @@
+.recents-toggle {
+  position: fixed; right: 0; top: 45%; z-index: 100;
+  width: 32px; height: auto; min-height: 96px; padding: 14px 6px;
+  writing-mode: vertical-rl; letter-spacing: .06em;
+  border: 1px solid #587b93; border-right: 0; border-radius: 8px 0 0 8px;
+  background: #233b4d; color: #e7f4ff; cursor: pointer;
+  font: 600 13px "Segoe UI", sans-serif;
+  box-shadow: 0 3px 16px #0006;
+}
+.recents-toggle:hover { background: #335970; }
+.recents-dialog {
+  box-sizing: border-box; width: 96vw; max-width: none;
+  height: 92vh; max-height: 96vh; margin: auto; padding: 26px 30px;
+  border: 1px solid #4b6376; border-radius: 12px;
+  background: #151c24; color: #ecf1f6; font: 14px "Segoe UI", sans-serif;
+  box-shadow: 0 20px 90px #0009;
+}
+.recents-dialog[open] { display: flex; flex-direction: column; gap: 16px; }
+.recents-dialog::backdrop { background: #02070ecc; }
+.recents-dialog .recents-header { display: flex; align-items: start; gap: 24px; flex: none; padding: 0; border: 0; background: none; }
+.recents-header > div { flex: 1; }
+.recents-dialog h2 { margin: 0 0 10px; font-size: 27px; letter-spacing: -.02em; color: #f5faff; }
+.recents-dialog p { margin: 0; line-height: 1.5; }
+.recents-header p, .recents-status { color: #aebdca; }
+.recents-dialog button { font: inherit; cursor: pointer; color: inherit; }
+.recents-dialog .recents-close {
+  width: auto; height: 36px; border: 1px solid #506376; border-radius: 6px;
+  padding: 6px 16px; background: #253340; white-space: nowrap;
+}
+.recents-dialog .recents-search {
+  box-sizing: border-box; flex: none; width: 100%; height: 44px; padding: 10px 14px;
+  font: inherit; border: 1px solid #41576a; border-radius: 6px;
+  color: #ecf1f6; background: #0e141b;
+}
+.recents-status { min-height: 21px; flex: none; }
+.recents-list { overflow: auto; min-height: 0; flex: 1; }
+.recents-dialog .recents-file {
+  box-sizing: border-box; display: flex; align-items: center; gap: 20px;
+  width: 100%; height: auto; min-height: 76px; margin-bottom: 8px; padding: 14px 18px;
+  border: 1px solid #2b3d4d; border-radius: 7px; text-align: left; background: #1c2732;
+}
+.recents-dialog .recents-file:hover { border-color: #73bfe9; background: #233747; }
+.recents-file-info { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 6px; }
+.recents-file strong { font-size: 15px; overflow-wrap: anywhere; }
+.recents-path { color: #a6b7c8; font-size: 12px; overflow-wrap: anywhere; }
+.recents-type { padding: 8px; border: 1px solid #45627a; border-radius: 5px; color: #99d8fc; font-size: 12px; }
+.recents-time { flex: none; color: #a6b7c8; font-size: 12px; }
+.recents-open { white-space: nowrap; color: #99d8fc; }
+.recents-empty { padding: 50px 20px; text-align: center; color: #aebdca; }
+.recents-dialog :focus-visible, .recents-toggle:focus-visible { outline: 2px solid #8bd8ff; outline-offset: 3px; }
+@media (max-width: 950px) {
+  .recents-dialog { padding: 20px; }
+  .recents-dialog .recents-file { gap: 12px; }
+  .recents-time { max-width: 100px; }
+}
