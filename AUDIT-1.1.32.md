@@ -100,11 +100,13 @@ license, README, source guide, notices and unsigned-distribution risk acceptance
 
 All three required CodeQL language checks and exact-head analysis receipts must
 pass without bypass. Existing reviewed native-code dismissals are retained;
-40 raw native and 3 raw JavaScript analysis results are not described as zero
-raw findings. The three JavaScript alerts are individually reviewed test-only
+40 raw native and 4 raw JavaScript analysis results are not described as zero
+raw findings. The four JavaScript alerts are individually reviewed test-only
 JSON string argument literals passed to executeJavaScript, not HTML interpolation;
 six independent quoting/injection cases preserve inputs without executing them.
-The harness is absent from the runtime. Exact file/line/hash evidence and
+The additional navigation-test alert uses four hard-coded control names; its
+exact template also preserves all seven tested arguments without injection.
+Both harnesses are absent from the runtime. Exact file/line/hash evidence and
 false-positive dispositions are recorded on PR #17. No rule is disabled. New
 open alerts block publication. The merge, source tree, annotated tag and twelve draft
 assets must match. Fresh public downloads, checksums, signed GitHub release/asset
