@@ -39,8 +39,8 @@ standalone native archives expand to the same native trees. Regenerated ZIP
 metadata can change archive hashes without changing native source. Git metadata,
 development caches, private fixtures and build logs are excluded.
 
-See [SOURCE.md](source/ExcelsisView-1.1.29/app-asar-extract/SOURCE.md) and
-[THIRD_PARTY_NOTICES.md](source/ExcelsisView-1.1.29/app-asar-extract/THIRD_PARTY_NOTICES.md).
+See [SOURCE.md](https://github.com/simonsystem609/ExcelsisViewer/blob/6c5e4055ec8ae06dc305461e9f93b20cf1ffc0db/source/ExcelsisView-1.1.29/app-asar-extract/SOURCE.md) and
+[THIRD_PARTY_NOTICES.md](https://github.com/simonsystem609/ExcelsisViewer/blob/6c5e4055ec8ae06dc305461e9f93b20cf1ffc0db/source/ExcelsisView-1.1.29/app-asar-extract/THIRD_PARTY_NOTICES.md).
 Unchanged public compatibility data, fonts and licenses retain their upstream
 attribution. No former proprietary decoder, vendor SDK/analysis material,
 customer file, real-world preset or private path was found in this release.
@@ -77,7 +77,7 @@ customer file, real-world preset or private path was found in this release.
 
 ## Frozen artifacts
 
-There are 12 assets, including [SHA256SUMS.txt](SHA256SUMS.txt), which covers all
+There are 12 assets, including [SHA256SUMS.txt](https://github.com/simonsystem609/ExcelsisViewer/blob/6c5e4055ec8ae06dc305461e9f93b20cf1ffc0db/SHA256SUMS.txt), which covers all
 11 payloads: installer/blockmap, complete application source, three native
 source archives, license, README, source guide, notices and risk acceptance.
 
