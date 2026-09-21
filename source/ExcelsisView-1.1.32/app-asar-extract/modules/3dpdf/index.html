@@ -1,0 +1,167 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Excelsis PDF viewer</title>
+<link rel="stylesheet" href="../shared/recents.css">
+<link rel="stylesheet" href="../shared/file-action-dialog.css">
+<link rel="stylesheet" href="./styles.css"></head><body>
+<header>
+  <b id="viewerTitle">PDF viewer</b>
+  <span id="viewerSubtitle" class="muted">Regular and 3D PDF</span>
+  <div id="pdfSaveSplit" class="pdf-save-split" hidden>
+    <button id="pdfSave" type="button" title="Save changes to the current PDF">Save</button>
+    <button id="pdfSaveMenuButton" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="More save options" title="More save options">▾</button>
+    <div id="pdfSaveMenu" class="pdf-save-menu" role="menu" hidden>
+      <button id="pdfSaveAs" type="button" role="menuitem">Save As...</button>
+    </div>
+  </div>
+  <div id="pdfFileActions" class="view-controls">
+    <button id="pdfPrevFile" type="button" disabled title="Previous file in this folder (Left arrow)">Prev file</button>
+    <button id="pdfNextFile" type="button" disabled title="Next file in this folder (Right arrow)">Next file</button>
+    <button id="pdfDiscard" type="button" disabled>Discard Changes</button>
+    <button id="pdfRenameFile" type="button" disabled>Rename File</button>
+    <button id="pdfDeleteFile" type="button" disabled title="Move the current PDF to the Recycle Bin after confirmation">Delete File</button>
+  </div>
+  <label class="btn" for="file">Open PDF...</label>
+  <input id="file" type="file" accept="application/pdf,.pdf">
+  <div id="threeControls" class="view-controls">
+    <select id="sampleSel" title="Built-in sample parts" hidden></select>
+    <button id="fit" title="Fit visible components">Fit</button>
+    <button id="edges" type="button" aria-pressed="true" title="Toggle model edges">Edges</button>
+  </div>
+  <div id="regularControls" class="view-controls" hidden>
+    <button id="pdfPrevPage" title="Previous page">Prev</button>
+    <input id="pdfPageNumber" type="number" min="1" value="1" title="Page number">
+    <span id="pdfPageCount" class="muted">/ 0</span>
+    <button id="pdfNextPage" title="Next page">Next</button>
+    <button id="pdfZoomOut" title="Zoom out">-</button>
+    <select id="pdfZoom" title="Zoom">
+      <option value="fit-width">Fit width</option>
+      <option value="fit-page">Fit page</option>
+      <option id="pdfZoomCustom" value="" hidden>100%</option>
+      <option value="0.25">25%</option>
+      <option value="0.5">50%</option>
+      <option value="0.75">75%</option>
+      <option value="1">100%</option>
+      <option value="1.25">125%</option>
+      <option value="1.5">150%</option>
+      <option value="2">200%</option>
+      <option value="3">300%</option>
+      <option value="4">400%</option>
+      <option value="6">600%</option>
+    </select>
+    <button id="pdfZoomIn" title="Zoom in">+</button>
+    <button id="pdfMirror" type="button" disabled title="Mirror pages into a new PDF copy">Mirror</button>
+    <button id="pdfScale" type="button" disabled title="Scale page size and contents into a new PDF copy">Scale</button>
+    <button id="pdfRotate" title="Rotate clockwise">Rotate</button>
+    <input id="pdfSearch" type="search" placeholder="Find" aria-label="Find in document">
+    <button id="pdfSearchPrev" title="Previous match">Up</button>
+    <button id="pdfSearchNext" title="Next match">Down</button>
+    <span id="pdfSearchState">0/0</span>
+    <button id="pdfPrint" title="Print">Print</button>
+  </div>
+  <span id="lockState" class="state">Writable</span>
+  <span id="stats"></span>
+</header>
+<div id="pdfEditorBar" hidden>
+  <button id="pdfEditSelect" type="button" aria-pressed="true" title="Select PDF objects. Moving stays locked until enabled from the right-click menu.">Select</button>
+  <button id="pdfAddText" type="button" aria-pressed="false" title="Place a new text box">Add text</button>
+  <button id="pdfAddImage" type="button" title="Add an image">Add image</button>
+  <input id="pdfImageFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/bmp">
+  <button id="pdfOcrRegion" type="button" aria-pressed="false" title="Drag around text. Embedded text is edited directly; image text uses OCR only after you select it.">Edit text</button>
+  <span class="editor-separator"></span>
+  <button id="pdfUndo" type="button" title="Undo PDF edit" disabled>Undo</button>
+  <button id="pdfRedo" type="button" title="Redo PDF edit" disabled>Redo</button>
+  <button id="pdfDeleteObject" type="button" title="Delete selected PDF object" disabled>Delete</button>
+  <span class="editor-separator"></span>
+  <span id="pdfObjectKind">No selection</span>
+  <input id="pdfObjectWidth" type="number" min="2" max="20000" step="0.5" aria-label="Object width" title="Object width in PDF points" placeholder="W" disabled>
+  <input id="pdfObjectHeight" type="number" min="2" max="20000" step="0.5" aria-label="Object height" title="Object height in PDF points" placeholder="H" disabled>
+  <input id="pdfObjectText" type="text" maxlength="20000" placeholder="Rewrite text" title="Text" disabled>
+  <input id="pdfFontSize" type="number" min="1" max="500" step="0.5" title="Font size" disabled>
+  <select id="pdfFontFamily" title="Closest font family" disabled>
+    <option value="sans">Sans</option>
+    <option value="light">Light sans</option>
+    <option value="serif">Serif</option>
+    <option value="mono">Mono</option>
+  </select>
+  <select id="pdfFontVariant" title="Text weight and slant" aria-label="Text weight and slant" disabled>
+    <option value="400:normal">Regular</option>
+    <option value="700:normal">Bold</option>
+    <option value="400:italic">Slanted</option>
+    <option value="700:italic">Bold slanted</option>
+  </select>
+  <label id="pdfCharacterSpacingControl" class="pdf-character-spacing-control" title="Extra spacing between characters in PDF points">
+    <span>Spacing</span>
+    <input id="pdfCharacterSpacing" type="number" min="-100" max="500" step="0.1" value="0" aria-label="Character spacing" disabled>
+  </label>
+  <label id="pdfTextColorControl" class="pdf-text-color-control" title="Text color detected from the original PDF">
+    <span>Color</span>
+    <input id="pdfObjectColor" type="color" value="#111111" aria-label="Text color" disabled>
+    <output id="pdfObjectColorValue">#111111</output>
+  </label>
+  <input id="pdfObjectOpacity" type="range" min="0.05" max="1" step="0.05" value="1" title="Object opacity" disabled>
+</div>
+<div id="pdfObjectMenu" role="menu" hidden>
+  <button id="pdfMoveObject" type="button" role="menuitem">Move object</button>
+  <button id="pdfRewriteText" type="button" role="menuitem">Edit text</button>
+  <button id="pdfRecognizeImageText" type="button" role="menuitem" hidden>Recognize text in image</button>
+  <button id="pdfCropImage" type="button" role="menuitem" hidden>Crop image</button>
+</div>
+<div id="workspace">
+  <aside id="treePanel">
+    <div class="panel-title"><strong>Components</strong><span id="selectionCount">0 selected</span></div>
+    <div class="tree-actions">
+      <button id="hideSelected" title="Hide selected components">Hide</button>
+      <button id="isolateSelected" title="Show only selected components">Isolate</button>
+      <button id="showAll" title="Show all hidden components">Show all</button>
+      <button id="deleteSelected" title="Remove selected components from this view">Delete</button>
+    </div>
+    <div class="opacity-controls">
+      <label><span>Model</span><input id="modelOpacity" type="range" min="0.05" max="1" step="0.05" value="1"><output id="modelOpacityValue">100%</output></label>
+      <label><span>Selected</span><input id="componentOpacity" type="range" min="0.05" max="1" step="0.05" value="1" disabled><output id="componentOpacityValue">-</output></label>
+    </div>
+    <div id="componentTree"><div class="tree-empty">No model loaded</div></div>
+  </aside>
+  <div id="drop">
+    <div class="hint" id="hint"><b>Drop a PDF here</b><br>or use "Open PDF...".</div>
+    <canvas id="cv"></canvas>
+  </div>
+  <div id="pdfWorkspace" hidden>
+    <aside id="pdfSidebar"><div id="pdfThumbnails"></div></aside>
+    <main id="pdfScroller"><div id="pdfPages"></div></main>
+  </div>
+</div>
+<dialog id="fileActionDialog" class="file-action-modal" aria-labelledby="fileActionTitle" aria-describedby="fileActionNote">
+  <form class="modal-card">
+    <h2 id="fileActionTitle">Rename file</h2>
+    <p id="fileActionPath" class="file-action-path"></p>
+    <div id="fileActionNameRow">
+      <label for="fileActionName">New filename</label>
+      <input id="fileActionName" type="text" maxlength="255" autocomplete="off" spellcheck="false">
+    </div>
+    <p id="fileActionNote" class="modal-note"></p>
+    <p id="fileActionError" class="file-action-error" role="alert"></p>
+    <div class="modal-actions">
+      <button id="fileActionCancelBtn" type="button">Cancel</button>
+      <button id="fileActionConfirmBtn" type="submit">Rename</button>
+    </div>
+  </form>
+</dialog>
+<dialog id="pdfTransformDialog" class="file-action-modal" aria-labelledby="pdfTransformTitle" aria-describedby="pdfTransformNote">
+  <form>
+    <h2 id="pdfTransformTitle">Transform PDF</h2>
+    <label class="pdf-transform-field">Apply to <select id="pdfTransformScope"><option value="all">All pages</option><option value="current">Current page</option></select></label>
+    <div id="pdfMirrorOptions">
+      <label class="pdf-transform-field">Direction <select id="pdfTransformAxis"><option value="horizontal">Horizontal (left / right)</option><option value="vertical">Vertical (top / bottom)</option></select></label>
+    </div>
+    <div id="pdfScaleOptions" hidden>
+      <label class="pdf-transform-field">Width / X (%) <input id="pdfScaleX" type="number" min="1" max="1000" step="any" value="100" required></label>
+      <label class="pdf-transform-field">Height / Y (%) <input id="pdfScaleY" type="number" min="1" max="1000" step="any" value="100" required></label>
+      <label class="pdf-transform-linked"><input id="pdfScaleLinked" type="checkbox" checked> Keep proportions (uniform scale)</label>
+    </div>
+    <p id="pdfTransformNote" class="modal-note">Saves a new PDF with your current edits; the original stays unchanged. Directions follow the displayed page, and the copy includes the current view rotation. Scale changes both page size and content. Interactive forms, signed PDFs and multimedia annotations are not supported.</p>
+    <p id="pdfTransformError" class="file-action-error" role="alert"></p>
+    <div class="modal-actions"><button id="pdfTransformCancel" type="button">Cancel</button><button id="pdfTransformConfirm" type="submit">Save transformed copy...</button></div>
+  </form>
+</dialog>
+<script type="module" src="./app.mjs"></script><script type="module" src="../shared/recents.mjs"></script></body></html>
