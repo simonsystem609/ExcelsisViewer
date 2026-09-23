@@ -5,8 +5,11 @@ const {
   compareProductVersions,
   isAllowedFinalDownloadUrl,
   latestReleaseApiUrl,
+  macroReleasesApiUrl,
+  selectLatestMacroRelease,
   updateStatusForVersions,
   validateLatestRelease,
+  validateMacroRelease,
 } = require("../update-center-utils.cjs");
 
 const root = path.resolve(__dirname, "..");
@@ -99,6 +102,33 @@ assert.equal(isAllowedFinalDownloadUrl("https://github.com.evil.example/a"), fal
 assert.equal(isAllowedFinalDownloadUrl("https://user@github.com/a"), false);
 assert.equal(isAllowedFinalDownloadUrl("http://github.com/a"), false);
 
+const macroTag = "excelsis-helper-macros-1.4.19-20260923.1";
+const macroNames = ["DXF_v16.swp", "DXF_v16.swb", "DXF_v16_ROfriendy.swp",
+  "DXF_v16_ROfriendy.swb", "MACRO-REVISION.json", "SHA256SUMS.txt"];
+const macroFixture = {
+  tag_name: macroTag, draft: false, prerelease: true, immutable: true,
+  html_url: `https://github.com/simonsystem609/ExcelsisHelper/releases/tag/${macroTag}`,
+  published_at: "2026-09-23T12:00:00Z",
+  assets: macroNames.map((name) => ({ name, state: "uploaded", size: 1000, digest,
+    browser_download_url:
+      `https://github.com/simonsystem609/ExcelsisHelper/releases/download/${macroTag}/${name}` })),
+};
+assert.equal(validateMacroRelease(macroFixture).macros.length, 2);
+assert.equal(selectLatestMacroRelease([macroFixture], "1.4.19").revision, "20260923.1");
+assert.equal(selectLatestMacroRelease([macroFixture], "1.4.20"), null);
+assert.ok(macroReleasesApiUrl().endsWith("/ExcelsisHelper/releases?per_page=100"));
+for (const [change, pattern] of [
+  [(r) => { r.immutable = false; }, /immutable/i],
+  [(r) => { r.prerelease = false; }, /prerelease/i],
+  [(r) => { r.assets[1].name = "unreviewed.swb"; }, /unexpected/i],
+  [(r) => { r.assets[1].digest = null; }, /SHA-256/i],
+  [(r) => { r.assets[1].browser_download_url = "https://evil.example/file"; }, /GitHub/i],
+]) {
+  const fixture = structuredClone(macroFixture);
+  change(fixture);
+  assert.throws(() => validateMacroRelease(fixture), pattern);
+}
+
 const main = fs.readFileSync(path.join(root, "main.cjs"), "utf8");
 const preload = fs.readFileSync(path.join(root, "preload.cjs"), "utf8");
 const launcher = fs.readFileSync(path.join(root, "launcher", "index.html"), "utf8");
@@ -118,6 +148,7 @@ assert.match(main, /updateStatusForVersions\(installedVersion, update\.version\)
 assert.match(main, /is newer than the latest public version/);
 assert.doesNotMatch(main, /shell\.openExternal/);
 assert.match(preload, /install: \(productKey\).*update:download-and-run/);
+assert.match(preload, /installMacros: \(\) => ipcRenderer\.invoke\("update:install-macros"\)/);
 assert.doesNotMatch(preload, /downloadUrl|installerPath/);
 assert.match(launcher, /data-module="dxf"/);
 assert.match(launcher, /data-module="dwg"/);
@@ -130,5 +161,8 @@ assert.match(updateScript, /"up-to-date": "Up to date"/);
 assert.match(updateScript, /!update\.canInstall/);
 assert.match(updateUtils, /uninstallGuid: "9542c8ef-f59a-55a8-bf9f-0ca14a456236"/);
 assert.match(updateUtils, /uninstallGuid: "9902802a-b027-5709-9ce3-7a9d4fdcc95c"/);
+assert.match(main, /handleTrusted\("update:install-macros", \["update-center"\]/);
+assert.match(updatePage, /data-product="macros"/);
+assert.match(updateScript, /Update macros/);
 
 console.log("Update-center validation and confinement tests passed.");

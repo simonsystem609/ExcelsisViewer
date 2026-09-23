@@ -29,6 +29,7 @@ contextBridge.exposeInMainWorld("excelsisApp", {
 contextBridge.exposeInMainWorld("excelsisUpdater", {
   getCatalog: () => ipcRenderer.invoke("update:get-catalog"),
   install: (productKey) => ipcRenderer.invoke("update:download-and-run", productKey),
+  installMacros: () => ipcRenderer.invoke("update:install-macros"),
   onProgress: (callback) => onAppChannel("update:progress", callback),
 });
 

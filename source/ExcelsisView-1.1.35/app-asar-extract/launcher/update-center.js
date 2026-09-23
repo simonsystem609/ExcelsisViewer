@@ -60,6 +60,23 @@ function renderProduct(update) {
   button.onclick = () => install(update.key);
 }
 
+function renderMacros(update) {
+  const element = productElements.get("macros");
+  const version = element.querySelector(".version");
+  const detail = element.querySelector(".detail");
+  const button = element.querySelector(".install");
+  const progress = element.querySelector("progress");
+  progress.hidden = true;
+  progress.value = 0;
+  version.textContent = `Helper: ${update.installedVersion || "Not installed"} · Macro revision: ${update.revision || "unavailable"}`;
+  detail.textContent = update.error || update.detail || "No compatible macro revision.";
+  button.disabled = busyProduct !== null || !update.canInstall;
+  button.dataset.available = String(!!update.canInstall);
+  button.textContent = update.canInstall ? "Update macros" :
+    (update.status === "up-to-date" ? "Macros up to date" : "Unavailable");
+  button.onclick = () => install("macros");
+}
+
 async function refresh() {
   if (!api?.getCatalog || busyProduct) return;
   refreshButton.disabled = true;
@@ -67,6 +84,7 @@ async function refresh() {
   try {
     const catalog = await api.getCatalog();
     for (const update of catalog.products || []) renderProduct(update);
+    renderMacros(catalog.macros || { status: "unknown", error: "Macro revision lookup was unavailable." });
     setStatus("Release information is current.");
   } catch (error) {
     setStatus(error?.message || "Could not check for updates.", true);
@@ -86,8 +104,20 @@ async function install(productKey) {
   progress.value = 0;
   setStatus("Preparing download...");
   try {
-    const result = await api.install(productKey);
-    setStatus(`Installer opened: ${result.path}`);
+    const result = productKey === "macros" ? await api.installMacros() : await api.install(productKey);
+    if (productKey === "macros") {
+      setStatus(result.deferred ? "Macro update deferred; save work and restart SOLIDWORKS before retrying."
+        : result.cancelled ? "Macro update cancelled."
+          : `Macro revision ${result.revision} is ready. Restart SOLIDWORKS before using it.`);
+      if (result.ok) {
+        product.querySelector(".install").dataset.available = "false";
+        product.querySelector(".install").textContent = "Macros up to date";
+        product.querySelector(".detail").textContent =
+          "Verified macros installed. Restart SOLIDWORKS before using them.";
+      }
+    } else {
+      setStatus(`Installer opened: ${result.path}`);
+    }
   } catch (error) {
     setStatus(error?.message || "The update could not be downloaded.", true);
   } finally {

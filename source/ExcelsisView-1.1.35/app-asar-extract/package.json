@@ -1,6 +1,6 @@
 {
   "name": "excelsisview",
-  "version": "1.1.34",
+  "version": "1.1.35",
   "description": "Excelsis DXF, DWG, and PDF viewer.",
   "author": "Excelsis",
   "license": "AGPL-3.0-or-later",
@@ -27,7 +27,7 @@
     "test:dwg": "node scripts/test-dxf-encoding.cjs && node scripts/test-dxf-geometry.mjs && node scripts/test-dxf-axis-scale.mjs && node scripts/test-dxf-corner-treatment.mjs && node scripts/test-dxf-scale-dialog.mjs && node scripts/test-dxf-coordinate-overlays.mjs && node scripts/test-dxf-contour-cleanup.mjs && node scripts/test-dxf-ui.mjs && node scripts/test-dxf-selection-sizing-renderer.cjs && node scripts/test-dxf-performance.mjs && node scripts/test-dwg-converter.cjs",
     "test:recents-racetrack": "node scripts/test-recent-files.cjs && node scripts/test-dxf-racetrack.mjs && node scripts/test-file-actions.cjs && node scripts/test-file-actions-renderer.cjs && node scripts/test-folder-navigation.cjs",
     "test:icons": "node scripts/test-file-type-icons.cjs",
-    "test:update-center": "node scripts/test-update-center.cjs",
+    "test:update-center": "node scripts/test-update-center.cjs && node scripts/test-macro-update.cjs",
     "test:shell": "node scripts/test-network-thumbnail-policy.cjs && powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-thumbnail-provider.ps1 -RunTests",
     "audit:dependencies": "npm audit --audit-level=moderate",
     "audit:security": "node scripts/audit-security.cjs",
@@ -90,6 +90,7 @@
       "nano-prc-bridge.cjs",
       "u3d-bridge.cjs",
       "update-center-utils.cjs",
+      "macro-update-files.cjs",
       "cache-limits.cjs",
       "guarded-process.cjs",
       "thumbnail-preload.cjs",
@@ -191,7 +192,7 @@
       }
     ],
     "directories": {
-      "output": "../dist-1.1.34",
+      "output": "../dist-1.1.35",
       "buildResources": "build"
     },
     "afterPack": "scripts/after-pack.cjs",

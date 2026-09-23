@@ -161,7 +161,7 @@ async function main() {
     "recent-files.cjs", "modules/shared/recents.mjs", "modules/shared/recents.css",
     "file-actions.cjs", "modules/shared/file-action-dialog.mjs", "modules/shared/file-action-dialog.css",
     "modules/shared/folder-navigation.mjs",
-    "network-thumbnail-policy.cjs",
+    "network-thumbnail-policy.cjs", "macro-update-files.cjs",
     "modules/dxf/racetrack.mjs", "modules/dxf/racetrack-dialog.mjs",
     "modules/dxf/app.js", "modules/dxf/index.html", "modules/dxf/styles.css",
     "modules/3dpdf/index.html", "modules/3dpdf/app.mjs", "modules/3dpdf/regular-pdf.mjs",
@@ -200,6 +200,8 @@ async function main() {
   assert.match(packagedUpdaterUtils, /uninstallGuid: "9542c8ef-f59a-55a8-bf9f-0ca14a456236"/);
   assert.match(packagedUpdaterUtils, /uninstallGuid: "9902802a-b027-5709-9ce3-7a9d4fdcc95c"/);
   assert.match(packagedUpdaterUtils, /release\.immutable !== true/);
+  assert.match(packagedMain, /handleTrusted\("update:install-macros", \["update-center"\]/);
+  assert.match(packagedPreload, /installMacros: \(\) => ipcRenderer\.invoke\("update:install-macros"\)/);
   assert.match(packagedUpdateCenter, /<script src="\.\/update-center\.js"><\/script>/);
   assert.doesNotMatch(packagedUpdateCenter, /<script(?![^>]*\bsrc=)/i);
   assert.match(packagedUpdateCenterScript, /Installed: \$\{installedText\} · Latest:/);
@@ -575,6 +577,7 @@ async function main() {
     `${appPrefix}/scripts/test-recent-files.cjs`,
     `${appPrefix}/scripts/test-dxf-racetrack.mjs`,
     `${appPrefix}/update-center-utils.cjs`,
+    `${appPrefix}/macro-update-files.cjs`,
     `${appPrefix}/launcher/update-center.html`,
     `${appPrefix}/scripts/test-update-center.cjs`,
     `${appPrefix}/package-lock.json`,
