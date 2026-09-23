@@ -1,7 +1,13 @@
 # ExcelsisView
 
-ExcelsisView 1.1.34 is a Windows viewer for DXF, DWG, regular PDF, and 3D PDF
+ExcelsisView 1.1.35 is a Windows viewer for DXF, DWG, regular PDF, and 3D PDF
 documents.
+
+Version 1.1.35 adds an opt-in **Update macros** button to Update Center for
+immutable, compatible Helper macro-only revisions. It verifies each compiled
+macro's GitHub SHA-256 digest, backs up existing files, and asks users to save
+work and close or restart SOLIDWORKS before retrying a locked-file update.
+Helper 1.4.19 or newer must be installed and launched once first.
 
 Version 1.1.34 adds same-size multi-contour parameter editing for holes,
 straight racetracks, rectangles and rounded rectangles. Selection size fields

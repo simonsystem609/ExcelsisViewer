@@ -50,7 +50,7 @@ const pdfLoaders = [
 ];
 const pkg = JSON.parse(read("package.json"));
 
-assert.equal(pkg.version, "1.1.34");
+assert.equal(pkg.version, "1.1.35");
 assert.equal(pkg.devDependencies.electron, "43.3.0");
 assert.equal(pkg.devDependencies["pdfjs-dist"], "6.2.108");
 assert.equal(pkg.devDependencies.three, "0.160.0");
@@ -187,6 +187,13 @@ assert.match(
 );
 assert.match(main, /is newer than the latest public version/, "Updater does not prevent downgrades.");
 assert.ok(pkg.build.files.includes("update-center-utils.cjs"), "Updater validation is omitted from the ASAR.");
+assert.ok(pkg.build.files.includes("macro-update-files.cjs"), "Macro update transaction is omitted from the ASAR.");
+assert.match(main, /handleTrusted\("update:install-macros", \["update-center"\]/,
+  "Macro installation is not confined to Update Center.");
+assert.match(main, /replaceInstalledMacros\(app\.getPath\("documents"\)/,
+  "Macro installation does not use the current user's Documents path.");
+assert.match(preload, /installMacros: \(\) => ipcRenderer\.invoke\("update:install-macros"\)/,
+  "The opt-in macro action is not exposed through the trusted preload.");
 const dxfSaveAsHandler = main.slice(
   main.indexOf('handleTrusted("fs:save-dxf-as"'),
   main.indexOf("for (const [channel, suffix]"),
@@ -420,7 +427,7 @@ assert.doesNotMatch(
 );
 assert.match(
   sourceDocument,
-  /SOURCE-ExcelsisView-1\.1\.34\.zip/,
+  /SOURCE-ExcelsisView-1\.1\.35\.zip/,
   "The exact installer-adjacent application source is not documented.",
 );
 assert.match(

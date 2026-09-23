@@ -56,6 +56,7 @@ $TopLevelFiles = @(
     "nano-prc-bridge.cjs",
     "u3d-bridge.cjs",
     "update-center-utils.cjs",
+    "macro-update-files.cjs",
     "preload.cjs",
     "thumbnail-preload.cjs",
     "batch-print-preload.cjs",

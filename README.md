@@ -1,17 +1,24 @@
 # ExcelsisView
 
-ExcelsisView 1.1.34 is an open-source Windows viewer for DXF, DWG, regular
+ExcelsisView 1.1.35 is an open-source Windows viewer for DXF, DWG, regular
 PDF, and supported PRC/U3D 3D PDF documents. Document processing is local,
 and native document parsers run behind Windows process-containment and
 resource limits.
 
 ## Download
 
-- [Windows installer](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.34/ExcelsisView-Setup-1.1.34.exe)
-- [Release notes and all assets](https://github.com/simonsystem609/ExcelsisViewer/releases/tag/excelsis-view-v1.1.34)
-- [Exact corresponding-source archive](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.34/SOURCE-ExcelsisView-1.1.34.zip)
+- [Windows installer](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.35/ExcelsisView-Setup-1.1.35.exe)
+- [Release notes and all assets](https://github.com/simonsystem609/ExcelsisViewer/releases/tag/excelsis-view-v1.1.35)
+- [Exact corresponding-source archive](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.35/SOURCE-ExcelsisView-1.1.35.zip)
 - [SHA-256 checksums](SHA256SUMS.txt)
-- [Licensing and security audit](AUDIT-1.1.34.md)
+- [Licensing and security audit](AUDIT-1.1.35.md)
+
+Version 1.1.35 adds an opt-in **Update macros** button in Update Center for
+compatible, immutable Excelsis Helper macro-only revisions. It verifies the
+new SWPs against GitHub SHA-256 digests, backs up the originals, and offers
+Retry or Later with a SOLIDWORKS close/restart prompt if a macro is locked.
+Helper 1.4.19 or newer must be installed and launched once first. The initial
+macro revision already matches the macros bundled in Helper 1.4.19.
 
 Version 1.1.34 adds same-size multi-contour DXF size editing for holes,
 straight racetracks, rectangles and rounded rectangles. Selection fields
@@ -44,7 +51,7 @@ The clean-build, security, source and packaged-byte gates passed for this releas
 The installer and ExcelsisView binaries are currently unsigned, so Windows
 may show a SmartScreen warning. Microsoft Defender was disabled in the build
 environment, so no Defender scan is claimed. Kaspersky 21.26 on 2026-09-23
-recursively scanned 484 objects in an exact installer copy with zero
+recursively scanned 486 objects in an exact installer copy with zero
 detections or suspicions. Verify the installer SHA-256 before running it.
 
 ## Source and build
@@ -54,7 +61,7 @@ contains the application source, the pinned modified nanoPRC source, the
 pinned modified U3D source, the LibreDWG source archive, license texts, and
 the scripts used to rebuild the release.
 
-From `source/ExcelsisView-1.1.34/app-asar-extract` on Windows with Node.js 24,
+From `source/ExcelsisView-1.1.35/app-asar-extract` on Windows with Node.js 24,
 npm, PowerShell, the documented native prerequisites, and Zig 0.16.0:
 
 ```powershell
@@ -63,7 +70,7 @@ npm run dist
 ```
 
 See
-[`source/ExcelsisView-1.1.34/app-asar-extract/SOURCE.md`](source/ExcelsisView-1.1.34/app-asar-extract/SOURCE.md)
+[`source/ExcelsisView-1.1.35/app-asar-extract/SOURCE.md`](source/ExcelsisView-1.1.35/app-asar-extract/SOURCE.md)
 for the complete build requirements.
 
 ## Project links

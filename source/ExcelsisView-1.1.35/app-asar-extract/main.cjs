@@ -23,12 +23,16 @@ const { createFileActions } = require("./file-actions.cjs");
 const { ensureNetworkThumbnailPolicy } = require("./network-thumbnail-policy.cjs");
 const { decodePrcFile, fileContainsPrcMarker } = require("./nano-prc-bridge.cjs");
 const { decodeU3dStream, detectEmbedded3dMarker } = require("./u3d-bridge.cjs");
+const { inspectInstalledMacros, isMacroLockError, replaceInstalledMacros } = require("./macro-update-files.cjs");
 const {
   MAX_INSTALLER_BYTES,
+  MAX_MACRO_BYTES,
   UPDATE_PRODUCTS,
   isAllowedFinalDownloadUrl,
   latestReleaseApiUrl,
+  macroReleasesApiUrl,
   productForKey,
+  selectLatestMacroRelease,
   updateStatusForVersions,
   validateLatestRelease,
 } = require("./update-center-utils.cjs");
@@ -1210,6 +1214,25 @@ async function fetchLatestUpdate(productKey) {
   return validateLatestRelease(productKey, release);
 }
 
+async function fetchLatestMacroUpdate(installedHelperVersion) {
+  const response = await openHttpsResponse(macroReleasesApiUrl(), {
+    Accept: "application/vnd.github+json",
+    "Accept-Encoding": "identity",
+    "User-Agent": `${APP_NAME}/${app.getVersion()}`,
+    "X-GitHub-Api-Version": "2022-11-28",
+  });
+  if (response.statusCode !== 200) {
+    response.resume();
+    throw new Error(`GitHub macro lookup failed with HTTP ${response.statusCode || "unknown"}.`);
+  }
+  const body = await readBoundedHttpsBody(response, MAX_UPDATE_API_BYTES);
+  let releases;
+  try { releases = JSON.parse(body.toString("utf8")); } catch {
+    throw new Error("GitHub returned invalid macro release metadata.");
+  }
+  return selectLatestMacroRelease(releases, installedHelperVersion);
+}
+
 function registryQueryExecutable() {
   const systemRoot = path.resolve(String(process.env.SystemRoot || "C:\\Windows"));
   const executablePath = path.join(systemRoot, "System32", "reg.exe");
@@ -1276,7 +1299,8 @@ function publicUpdateInfo(update, installedVersion, installedVersionError = null
 }
 
 async function updateCatalog() {
-  const products = await Promise.all(Object.keys(UPDATE_PRODUCTS).map(async (productKey) => {
+  const [products, macros] = await Promise.all([
+    Promise.all(Object.keys(UPDATE_PRODUCTS).map(async (productKey) => {
     let installedVersion = null;
     let installedVersionError = null;
     try {
@@ -1302,8 +1326,43 @@ async function updateCatalog() {
         error: error?.message || "Could not check this update repository.",
       };
     }
-  }));
-  return { currentViewerVersion: app.getVersion(), products };
+    })),
+    macroUpdateCatalog(),
+  ]);
+  return { currentViewerVersion: app.getVersion(), products, macros };
+}
+
+async function macroUpdateCatalog() {
+  let installedVersion;
+  try { installedVersion = await installedProductVersion("helper"); } catch (error) {
+    return { status: "unknown", canInstall: false, error: error.message };
+  }
+  if (!installedVersion) {
+    return { status: "not-installed", canInstall: false,
+      detail: "Install Helper first, then launch it once to deploy bundled macros." };
+  }
+  const comparison = updateStatusForVersions(installedVersion, "1.4.19");
+  if (comparison === "unknown" || comparison === "update-available") {
+    return { installedVersion, status: "requires-helper", canInstall: false,
+      detail: "Update Helper to 1.4.19 or newer first." };
+  }
+  try {
+    const revision = await fetchLatestMacroUpdate(installedVersion);
+    if (!revision) return { installedVersion, status: "unavailable", canInstall: false,
+      detail: "No compatible macro-only revision has been published." };
+    const names = revision.macros.map((item) => item.swp.name);
+    const installed = await inspectInstalledMacros(app.getPath("documents"), installedVersion, names);
+    const pending = revision.macros.filter((item) => (
+      installed.current.find((entry) => entry.name === item.swp.name).sha256 !== item.swp.sha256
+    ));
+    return { installedVersion, revision: revision.revision, tag: revision.tag,
+      status: pending.length ? "update-available" : "up-to-date", canInstall: pending.length > 0,
+      detail: pending.length
+        ? `${pending.length} macro file${pending.length === 1 ? "" : "s"} can be updated; originals will be backed up.`
+        : "Installed macro hashes match the latest compatible revision." };
+  } catch (error) {
+    return { installedVersion, status: "unknown", canInstall: false, error: error.message };
+  }
 }
 
 function sendUpdateProgress(event, productKey, percent, message) {
@@ -1491,6 +1550,75 @@ async function downloadAndRunUpdate(event, productKey) {
   } finally {
     updateInstallTasks.delete(productKey);
   }
+}
+
+async function downloadVerifiedMacro(event, asset, index, total) {
+  const response = await openInstallerDownloadResponse(asset.downloadUrl);
+  const declaredLength = Number(response.headers["content-length"] || 0);
+  if (declaredLength && declaredLength !== asset.size) {
+    response.destroy();
+    throw new Error("The macro download size differs from immutable release metadata.");
+  }
+  const bytes = await readBoundedHttpsBody(response, Math.min(asset.size, MAX_MACRO_BYTES));
+  if (bytes.length !== asset.size ||
+      crypto.createHash("sha256").update(bytes).digest("hex") !== asset.sha256) {
+    throw new Error(`The downloaded ${asset.name} failed SHA-256 verification.`);
+  }
+  sendUpdateProgress(event, "macros", Math.round((index / total) * 70),
+    `Verified ${asset.name} (${index}/${total}).`);
+  return { name: asset.name, sha256: asset.sha256, bytes };
+}
+
+async function installMacroUpdate(event) {
+  if (updateInstallTasks.has("macros") || updateInstallTasks.has("helper")) {
+    throw new Error("Another Helper update is already in progress.");
+  }
+  const task = (async () => {
+    const helperVersion = await installedProductVersion("helper");
+    if (!helperVersion || updateStatusForVersions(helperVersion, "1.4.19") === "update-available") {
+      throw new Error("Install Helper 1.4.19 or newer before updating macros.");
+    }
+    const revision = await fetchLatestMacroUpdate(helperVersion);
+    if (!revision) throw new Error("No compatible macro revision is published.");
+    const names = revision.macros.map((item) => item.swp.name);
+    const installed = await inspectInstalledMacros(app.getPath("documents"), helperVersion, names);
+    if (revision.macros.every((item) => (
+      installed.current.find((entry) => entry.name === item.swp.name).sha256 === item.swp.sha256
+    ))) return { ok: true, alreadyCurrent: true, revision: revision.revision };
+    const window = BrowserWindow.fromWebContents(event.sender);
+    const { response } = await dialog.showMessageBox(window, {
+      type: "question", title: "Update Helper macros",
+      message: `Install macro revision ${revision.revision}?`,
+      detail: "Only the listed Helper SWP macros will be replaced. Existing copies are saved under Documents\\Excelsis Helper\\macrobackup. Save SOLIDWORKS work before continuing. If a macro is locked, you will be asked to close or restart SOLIDWORKS and retry.",
+      buttons: ["Update macros", "Cancel"], defaultId: 0, cancelId: 1, noLink: true,
+    });
+    if (response !== 0) return { ok: false, cancelled: true };
+    const verified = [];
+    for (let index = 0; index < revision.macros.length; index += 1) {
+      verified.push(await downloadVerifiedMacro(event, revision.macros[index].swp,
+        index + 1, revision.macros.length));
+    }
+    for (;;) {
+      try {
+        sendUpdateProgress(event, "macros", 80, "Backing up and replacing verified macros...");
+        const result = await replaceInstalledMacros(app.getPath("documents"), helperVersion,
+          revision.revision, verified);
+        sendUpdateProgress(event, "macros", 100, "Verified macros installed; restart SOLIDWORKS before using them.");
+        return { ok: true, revision: revision.revision, ...result };
+      } catch (error) {
+        if (!isMacroLockError(error)) throw error;
+        const choice = await dialog.showMessageBox(window, {
+          type: "warning", title: "SOLIDWORKS macro is locked",
+          message: "Save work and close or restart SOLIDWORKS, including its VBA editor.",
+          detail: `The macro revision is still pending. No locked file was overwritten. Choose Retry after SOLIDWORKS is fully closed, or Later to keep the current macros.\n\n${error.message}`,
+          buttons: ["Retry", "Later"], defaultId: 0, cancelId: 1, noLink: true,
+        });
+        if (choice.response !== 0) return { ok: false, deferred: true, revision: revision.revision };
+      }
+    }
+  })();
+  updateInstallTasks.set("macros", task);
+  try { return await task; } finally { updateInstallTasks.delete("macros"); }
 }
 
 handleTrusted("app:get-version", TRUSTED_MODULES, () => app.getVersion());
@@ -1694,6 +1822,7 @@ handleTrusted("update:download-and-run", ["update-center"], (event, requestedPro
   const productKey = productForKey(requestedProductKey).key;
   return downloadAndRunUpdate(event, productKey);
 });
+handleTrusted("update:install-macros", ["update-center"], (event) => installMacroUpdate(event));
 
 handleTrusted("fs:grant-local-file", ["dxf", "3dpdf"], async (event, filePath) => {
   const resolved = path.resolve(String(filePath || ""));
