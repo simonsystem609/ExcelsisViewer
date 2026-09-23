@@ -1,0 +1,264 @@
+# ExcelsisView
+
+ExcelsisView 1.1.34 is a Windows viewer for DXF, DWG, regular PDF, and 3D PDF
+documents.
+
+Version 1.1.34 adds same-size multi-contour parameter editing for holes,
+straight racetracks, rectangles and rounded rectangles. Selection size fields
+accept comma or dot decimals and retain 0.1-step up/down controls.
+
+Version 1.1.33 attempts to apply Windows' network thumbnail-cache storage
+policy for the current user during installation and packaged-app startup.
+When Windows permits the write, Explorer avoids network `Thumbs.db` caching.
+Some user profiles restrict the policy key so neither normal startup nor an
+installer running under a different administrator account can configure the
+actual user's policy. In that case the cache prevention is NOT active.
+Thumbnail display stays enabled; local thumbnail caches are not disabled.
+The policy affects Explorer for that Windows user, not only ExcelsisView files.
+There is no switch. Any pre-existing user/machine value is preserved; if an
+explicit policy conflicts or Windows denies access, Viewer does not override it.
+Startup records the outcome in local `NetworkThumbnailCachePolicy.json` beside
+the app's local settings, without document paths or process output.
+
+Uninstall restores original absence only for a still-unchanged value Viewer
+created for the invoking Windows user; upgrades keep ownership. Later policy
+changes to that policy key retire ownership conservatively. An identical write
+that Windows treats as a no-op cannot be distinguished from an unchanged value.
+Other Windows user profiles are not enumerated or modified on uninstall.
+Existing `Thumbs.db` files are not deleted, and already-open Explorer handles
+are not forcibly closed. Close affected Explorer windows or sign out/in if an
+old handle persists. This is preventive, not a forced-unlock operation.
+See [Microsoft's network thumbnail-cache policy](https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-admx-thumbnails#disablethumbsdbonnetworkfolders).
+
+Version 1.1.32's Left/Right previous/next-folder-file shortcuts are retained for
+DXF, DWG and PDF. PDF file buttons are separate from page navigation. Typing,
+dialogs, modified/repeated keys and busy operations do not trigger a file change;
+unsaved DXF/PDF edits retain the existing save/cancel protection.
+
+Version 1.1.31 adds Mirror and Scale to regular PDF pages. Mirror flips left/right
+or top/bottom; Scale uses linked or independent X/Y percentages (1-1000%). Both
+can target the current page or all pages and save a new copy, including unsaved
+editor changes and the current view rotation. The original and existing target
+files cannot be overwritten by these tools. Vector/text content stays vector/text;
+cropped and rotated pages and supported annotation appearances move with it.
+Scale changes the physical page size as well as the content, not the zoom.
+Interactive forms, signatures, multimedia and unsupported annotation types are
+rejected without saving; the tools do not flatten them or transform 3D models.
+
+Version 1.1.30 adds Rename File and Delete File after Discard Changes in the
+CAD toolbar and shares these controls with PDF (including 3D PDF). Rename
+prefills the full filename, selects its basename for easy editing, preserves
+unsaved edits, keeps the file type/folder, and never overwrites another file.
+Delete requires confirmation and moves the file to the Windows Recycle Bin;
+if recycling is unavailable, it fails without permanently deleting the file.
+Both actions update Recents and require the current file not to be open in
+another window. PDF also gains Discard Changes.
+
+The CAD toolbar places Fit and Show Original after Rotate, and Connect with
+racetrack directly after Add Chamfer/Fillet. When the toolbar uses two rows,
+the second always begins with Dissolve. Chamfer/fillet, contour repair/removal,
+and racetrack are hidden for read-only DWG views and remain DXF-only.
+
+Version 1.1.29 adds a right-edge Recents button to every document window. Its
+closable near-full-window popup shares local history across windows, shows
+only the current DXF, DWG or PDF section, and supports file/folder search.
+Selecting a recent entry focuses an already-open document or opens a new
+window, preserving current unsaved edits. History starts with this version,
+stays on this computer, and retains up to 60 files per section.
+
+The DXF editor also adds Connect with racetrack: pick two snapped vertices,
+circle centers, or arbitrary points as the rounded end centers. Choose
+Straight or Curved, edit track width or its linked end radius, and independently
+set the curved centerline radius and left/right bend. A live dialog preview
+shows the result. Curves use the minor arc (up to 180 degrees), require a curve
+radius at least half the point spacing and greater than the end radius, and
+save as closed LWPOLYLINEs with exact circular bulges. Source geometry stays
+unchanged; additions support Undo before Save. DWG remains read-only; use
+Save As to create an editable DXF.
+
+The build-only js-yaml override is 4.3.2 to address
+[GHSA-2883-xcg3-v3hh](https://github.com/advisories/GHSA-2883-xcg3-v3hh).
+
+Version 1.1.28 adds a parameterized Add Chamfer/Fillet command to the DXF
+editor. It accepts either two connected selected LINE entities or one
+click-picked straight-sided polyline/shared-LINE vertex. Chamfer size is an
+equal setback along both edges; fillet size is the exact tangent radius. The
+command trims the adjacent edges, writes exact LINE/ARC or LWPOLYLINE bulge
+geometry, preserves entity layer/style metadata, participates in Undo and
+normal DXF Save, and rejects arc-adjacent, collinear, ambiguous, or oversized
+corners before changing the drawing.
+
+Version 1.1.27 adds a Non-uniform checkbox to percentage and line-reference
+scaling. Percentage mode switches between one factor and independent X/Y
+percentages. Line mode switches between uniform target-length scaling and a
+parallel target length plus a perpendicular percentage (100% is unchanged).
+The line defines the scale axes, not a drawing rotation; both modes stay
+anchored at the drawing origin and preserve exact elliptical geometry.
+
+Version 1.1.26 keeps connected CAD geometry closed when the drawing is scaled
+by different X and Y factors. Circular arcs, circles, and polyline bulges become
+mathematically exact DXF ellipse entities instead of retaining an incompatible
+geometric-mean radius; the viewer uses a smooth sampled preview while the saved
+DXF retains the exact conic. Uniform scaling and scale-from-line keep their
+existing circular ARC/CIRCLE and bulge behavior. Wrapped partial DXF ellipses
+are also distinguished correctly from full ellipses. The live dependency gate
+additionally pins patched `@xmldom/xmldom` 0.8.15 and `fast-uri` 3.1.7 after
+new advisories superseded the previous build-only dependency versions.
+
+Version 1.1.25 makes Update Center compare the currently installed application
+versions with the validated latest public releases. It reads the fixed Viewer
+and Helper NSIS uninstall identities from the Windows registry, displays
+Installed and Latest values for both products, and distinguishes Install,
+Update available, Up to date, and Installed version is newer. Equal or newer
+installed versions disable the action, and the main process repeats the check
+immediately before any download to prevent stale-page downgrades. The Helper's
+public artifact suffix (for example `1.4.8-public.1`) is displayed but correctly
+compared using its installed application version (`1.4.8`).
+
+Version 1.1.24 keeps the CAD Rotate button as the existing one-click 90-degree
+clockwise operation and adds a split menu for signed-degree rotation and
+horizontal alignment from a selected straight line or straight polyline
+segment. Rotations remain centered on the drawing body and are serialized into
+saved DXF output. The launcher now exposes separate DXF, DWG, and PDF choices,
+plus a constrained Update Center for ExcelsisView and Excelsis Helper. It reads
+only the two fixed public GitHub release feeds, accepts immutable full releases,
+downloads into the user's Downloads folder, verifies the release SHA-256,
+exact byte count, and PE signature, and only then asks Windows to run the
+installer.
+
+Version 1.1.23 opens only the active DXF/DWG model or paper space, preventing
+translated model/layout duplicates from being drawn side-by-side. Large
+read-only DWGs use cached batched canvas paths, indexed pointer hit-testing,
+bounded feature-list DOM output, and defer editable contour analysis until
+Save As DXF. The supplied 3.76 MB regression drawing therefore keeps 46,001
+active expanded entities instead of drawing 90,258 entities from both spaces.
+
+Version 1.1.22 keeps DXF toolbar button labels on one line when the application
+window narrows. The toolbar compacts first, then automatically becomes two
+rows instead of scrolling or allowing labels to escape below their button
+boxes; regular PDF and 3D PDF behavior is unchanged.
+
+Version 1.1.20 makes the generated Three.js/pako/browser-buffer runtime fully
+reproducible from pinned source tarballs, replaces Three.js object-identifier
+randomness with Web Crypto, narrows the nanoPRC image decoder to its declared
+JPEG/PNG formats, and keeps all file-controlled allocation arithmetic wide and
+checked. The focused UUID, image-decoder, synthetic PRC/PDF, and existing
+security tests run automatically before packaging.
+
+Version 1.1.19 keeps the installer as one standalone offline executable while
+placing the non-runtime corresponding-source archives beside it instead of
+nesting more than 137 MB of already-compressed development sources inside the
+NSIS payload. All application runtimes, native decoders, Explorer integration,
+licenses, and notices remain in the installer; the adjacent sources remain the
+exact AGPL/GPL compliance materials for redistribution.
+
+The release also uses PDF.js 6.2.108 and Electron 43.3.0, keeps PDF.js dynamic
+evaluation and scripting disabled in every production loader, and retains the
+isolated native-parser and exact packaged-runtime gates.
+
+Version 1.1.18 evaluates Auto print orientation independently for every page.
+Mixed A4 portrait and A3 landscape sheets remain one ordered, collated,
+duplex-capable printer job; landscape content is rotated inside the physical
+sheet coordinate instead of splitting the document into separate spool jobs.
+Manual Portrait and Landscape continue to force every selected page.
+
+Version 1.1.17 adds a shared in-app and Explorer-batch print preview with exact
+Auto/Portrait/Landscape orientation, margins, actual/custom scaling, printable-
+area fitting, and borderless paper-edge fitting. PDF pages render from the
+source at selectable 150/300/600 DPI instead of printing the current viewer
+canvas; large jobs adapt within explicit memory limits. The regular PDF viewer
+also uses higher adaptive supersampling for crisper technical text while keeping
+the existing smooth compositor zoom.
+
+Version 1.1.16 adds distinct Royal Vivid DXF, DWG, and PDF identities while
+keeping the red ExcelsisView launcher unchanged. Viewer titlebar/taskbar icons
+follow the currently open format, including DXF/DWG navigation and DWG-to-DXF
+Save As. Windows Explorer uses the matching per-format icon as its fallback in
+Details, List, and other modes where it does not display document thumbnails;
+thumbnail-capable views continue to use the existing thumbnail provider. The
+release also pins the fixed brace-expansion 5.0.9, fast-uri 3.1.7, and Undici
+6.28.0/7.29.0 transitive build dependencies after the current advisory gate
+identified their superseded versions.
+
+Version 1.1.15 automatically detects whether a 3D PDF embeds PRC or ECMA-363
+U3D. PRC continues through nanoPRC; U3D is extracted in a background worker
+and decoded by the pinned Apache-2.0 U3D reference implementation behind the
+same native AppContainer, Job Object, resource, cache, and scene-complexity
+limits. Both formats use the same assembly tree, component selection,
+hide/isolate/delete, opacity, edge, fit, pan, zoom, and quaternion-rotation
+viewer. U3D JPEG/PNG texture dimensions, pitches, component counts, input
+reads, allocations, reallocations, resize buffers, and render copies now pass
+through checked size boundaries. Null output pointers in the animation and
+subdivision paths are rejected before dereference, and mandatory hostile tests
+cover overflow, excessive dimensions and pitches, allocation failure, and
+truncated JPEG/PNG texture continuations.
+
+Version 1.1.13 keeps the in-place regular-PDF Save button and compact Save As
+menu, and improves image OCR typography. Every editable word is now painted as
+one uniformly transformed text run with normal kerning; related small words
+share the same mask-selected font, size, scale, and spacing. Editable SVG text
+also exposes normal glyph overhang so the final character is not clipped by
+its word box. A bundled light sans family plus remembered per-box regular,
+bold, slanted, bold-slanted, color, and character-spacing controls provide
+closer manual fine tuning.
+
+Version 1.1.10 gives embedded PDF text priority over overlapping background
+image objects, while the image remains selectable outside known text zones.
+Double-clicking text opens an in-place editor on the page; Enter applies the
+edit, Escape restores the previous text, and the toolbar stays synchronized.
+
+Version 1.1.9 automatically edits embedded PDF text directly and falls back
+to offline OCR only for raster text. Native edits preserve the embedded font,
+font size, horizontal scale, character spacing, rotation, baseline, and fixed
+left edge. OCR results are split into smaller independently editable words and
+use per-word visual typography matching.
+
+Version 1.1.8 makes the uniform selected-contour Offset use the same exact
+bounding-box transform as Per direction with equal X/Y values. Open or
+otherwise unrecognized straight contours now grow or shrink by the requested
+millimetres on every side instead of using aspect-dependent radial scaling.
+
+Version 1.1.7 extends the opt-in less-safe chamfer/fillet cleanup to complex
+branched outer-offset exports. It only activates when at least four coherent
+short bridges isolate one unique global exterior contour; slot cleanup and
+strict mode keep their previous behavior. Repeated contour analysis is now
+non-mutating, and Save As notifies other windows when overwriting an open DXF.
+
+Version 1.1.6 adds a compact Save As menu beside the DXF Save button and an
+opt-in relaxed chamfer/fillet cleanup mode. Relaxed cleanup accepts only
+unambiguous pairs of nested closed contours with matching shape and a nearly
+uniform offset of 2 mm or less, including drawings whose short cross-bridges
+vary around corners. Strict bridge-proven cleanup remains the default.
+
+Version 1.1.5 keeps expensive DXF contour analysis, 3D PDF decoding and mesh
+preparation, PDF.js rendering, OCR, image separation, and inpainting away from
+the window UI event loop. It also reduces redundant DXF redraw, hit-testing,
+feature-list DOM work, and regular-PDF render contention so controls remain
+responsive while documents are processed.
+
+Version 1.1.4 adds a fixed lower-left X/Y coordinate-system indicator and a
+zoom-aware royal-purple marker at the DXF world origin `(0, 0)`. The origin
+marker remains legible over geometry by keeping a black gap between its center
+dot and outer ring.
+
+Version 1.1.3 preserves the source font metrics and left anchor when native PDF
+text is edited. DXF selection is now red, arc and bulge bounds use exact
+quadrant extrema, safe contours support independent X/Y offsets, and
+measurement mode adds arc-center, quadrant, and tangent snaps.
+
+Version 1.1.2 added smooth live PDF zooming, remembered multi-PDF batch-print
+settings with a first-document preview, conservative removal of narrow
+duplicated DXF chamfer/fillet contours, and persistent dissolved DXF entities
+until the user explicitly chooses Rebuild.
+
+Copyright in the authored ExcelsisView product code is licensed under the GNU
+Affero General Public License version 3 or later
+(`AGPL-3.0-or-later`). The complete license text is in `LICENSE.txt`.
+
+Third-party components are not relicensed by this declaration. In particular,
+nanoPRC is `AGPL-3.0-or-later`, LibreDWG is `GPL-3.0-or-later`, the U3D
+reference implementation is `Apache-2.0`, and the other bundled libraries
+retain the individual licenses listed in `THIRD_PARTY_NOTICES.md`.
+
+Corresponding-source contents and the clean Windows build procedure are
+documented in `SOURCE.md`.
