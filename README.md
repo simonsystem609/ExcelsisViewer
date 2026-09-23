@@ -1,17 +1,30 @@
 # ExcelsisView
 
-ExcelsisView 1.1.32 is an open-source Windows viewer for DXF, DWG, regular
+ExcelsisView 1.1.34 is an open-source Windows viewer for DXF, DWG, regular
 PDF, and supported PRC/U3D 3D PDF documents. Document processing is local,
 and native document parsers run behind Windows process-containment and
 resource limits.
 
 ## Download
 
-- [Windows installer](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.32/ExcelsisView-Setup-1.1.32.exe)
-- [Release notes and all assets](https://github.com/simonsystem609/ExcelsisViewer/releases/tag/excelsis-view-v1.1.32)
-- [Exact corresponding-source archive](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.32/SOURCE-ExcelsisView-1.1.32.zip)
+- [Windows installer](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.34/ExcelsisView-Setup-1.1.34.exe)
+- [Release notes and all assets](https://github.com/simonsystem609/ExcelsisViewer/releases/tag/excelsis-view-v1.1.34)
+- [Exact corresponding-source archive](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.34/SOURCE-ExcelsisView-1.1.34.zip)
 - [SHA-256 checksums](SHA256SUMS.txt)
-- [Licensing and security audit](AUDIT-1.1.32.md)
+- [Licensing and security audit](AUDIT-1.1.34.md)
+
+Version 1.1.34 adds same-size multi-contour DXF size editing for holes,
+straight racetracks, rectangles and rounded rectangles. Selection fields
+accept comma or dot decimals and retain 0.1-step controls.
+
+The included 1.1.33 change attempts to stop new Windows network `Thumbs.db`
+storage for the current user. This Windows Explorer policy affects all network
+folders for that user, not only Viewer files. Existing policies are preserved;
+Windows may deny the write, and an installer run as a different administrator
+may configure that account instead. Viewer retries for the actual user at
+startup. It does not delete old cache files or force-close Explorer handles.
+An unchanged value created by Viewer is restored for the invoking user on
+uninstall; see the release README for limitations.
 
 Version 1.1.32 adds Left/Right arrow-key folder-file navigation across DXF, DWG
 and PDF, with separate PDF file buttons and unchanged PDF page buttons. Typing,
@@ -30,8 +43,8 @@ The clean-build, security, source and packaged-byte gates passed for this releas
 
 The installer and ExcelsisView binaries are currently unsigned, so Windows
 may show a SmartScreen warning. Microsoft Defender was disabled in the build
-environment, so no Defender scan is claimed. Kaspersky 21.26 with 2026-09-21
-full bases recursively scanned 482 objects in an exact installer copy with zero
+environment, so no Defender scan is claimed. Kaspersky 21.26 on 2026-09-23
+recursively scanned 484 objects in an exact installer copy with zero
 detections or suspicions. Verify the installer SHA-256 before running it.
 
 ## Source and build
@@ -41,7 +54,7 @@ contains the application source, the pinned modified nanoPRC source, the
 pinned modified U3D source, the LibreDWG source archive, license texts, and
 the scripts used to rebuild the release.
 
-From `source/ExcelsisView-1.1.32/app-asar-extract` on Windows with Node.js 24,
+From `source/ExcelsisView-1.1.34/app-asar-extract` on Windows with Node.js 24,
 npm, PowerShell, the documented native prerequisites, and Zig 0.16.0:
 
 ```powershell
@@ -50,7 +63,7 @@ npm run dist
 ```
 
 See
-[`source/ExcelsisView-1.1.32/app-asar-extract/SOURCE.md`](source/ExcelsisView-1.1.32/app-asar-extract/SOURCE.md)
+[`source/ExcelsisView-1.1.34/app-asar-extract/SOURCE.md`](source/ExcelsisView-1.1.34/app-asar-extract/SOURCE.md)
 for the complete build requirements.
 
 ## Project links
