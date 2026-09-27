@@ -2,6 +2,7 @@ import { looksLikePrcPdf, looksLikeU3dPdf } from './nano-prc.mjs';
 import { createWorkerTaskClient } from '../shared/worker-client.mjs';
 import { confirmFileAction } from '../shared/file-action-dialog.mjs';
 import { bindFolderNavigation } from '../shared/folder-navigation.mjs';
+import { cameraClipping, closeUpBoost, zoomedSurfaceDepth } from './navigation-math.mjs';
 
 const cv=document.getElementById('cv'), drop=document.getElementById('drop'), hint=document.getElementById('hint'), stats=document.getElementById('stats');
 const componentTree=document.getElementById('componentTree'), selectionCount=document.getElementById('selectionCount');
@@ -24,6 +25,7 @@ const selectedNodes=new Set(), hiddenNodes=new Set(), deletedNodes=new Set();
 let raycaster,pointerNdc,defaultViewEuler,viewQuaternion,rotationDelta,rotationAxis,viewAxis;
 let dragInverseQuaternion,dragOrbitWorld,dragOrbitLocal,rotatedOrbitLocal,zoomPlane,zoomAnchor;
 let dist=3, modelRadius=1;
+let dragRotationBoost=1,panDepth=1,panScale=1,zoomSequence=null,zoomFocusLocal=null;
 let initialFitPending=false, initialFitGeneration=0;
 let pointerAction=null, pointerMoved=false, px=0, py=0, downX=0, downY=0;
 let lastCanvasSelectAt=-Infinity, lastCanvasSelectX=0, lastCanvasSelectY=0;
@@ -120,6 +122,7 @@ function resize(){
 }
 function disposeModel(){
   cancelInitialFit();
+  zoomSequence=null;zoomFocusLocal=null;
   if(modelRoot){ pivot.remove(modelRoot); modelRoot=null; wireGroup=null; }
   for(const geometry of ownedGeometries) geometry.dispose();
   for(const material of ownedMaterials) material.dispose();
@@ -215,16 +218,17 @@ function exactModelRadius({visibleOnly=true}={}){
 }
 function updateCameraClipping(){
   if(!cam)return;
-  const margin=Math.max(modelRadius*1.15,1);
   // Cursor-pivot rotation moves the assembly center in world space. Keep the
-  // frustum centered on that transformed depth instead of assuming z=0.
-  const centerDepth=dist-(pivot?.position.z||0);
-  const near=Math.max(0.01,centerDepth-margin);
-  const far=Math.max(near+1,centerDepth+margin);
+  // frustum centered on that transformed depth instead of assuming z=0. Also
+  // retain a close picked surface in front of the near plane.
+  const focusWorld=zoomFocusLocal?.clone().applyQuaternion(viewQuaternion).add(pivot.position);
+  const focusDepth=focusWorld?dist-focusWorld.z:null;
+  const {near,far}=cameraClipping(dist,pivot?.position.z||0,modelRadius,focusDepth);
   if(Math.abs(cam.near-near)>1e-6||Math.abs(cam.far-far)>1e-6){cam.near=near;cam.far=far;cam.updateProjectionMatrix();}
 }
 function fitView(){
   if(!modelRoot || !cam) return;
+  zoomSequence=null;zoomFocusLocal=null;
   pivot.position.set(0,0,0); pivot.quaternion.copy(viewQuaternion);
   scene.updateMatrixWorld(true);
   const radius=exactModelRadius();
@@ -438,7 +442,9 @@ function raycastAt(event){
   return raycaster.intersectObjects(solidObjects.filter(object=>object.visible),false)[0]||null;
 }
 function beginRotation(event){
+  zoomSequence=null;zoomFocusLocal=null;
   const hit=raycastAt(event);
+  dragRotationBoost=closeUpBoost(dist-(hit?.point.z??pivot.position.z),hitSurfaceScale(hit),2.5);
   dragInverseQuaternion.copy(viewQuaternion).invert();
   if(hit)dragOrbitLocal.copy(hit.point).sub(pivot.position).applyQuaternion(dragInverseQuaternion);
   else dragOrbitLocal.set(0,0,0);
@@ -450,11 +456,11 @@ function updateRotation(event){
     const sx=px-centerX,sy=centerY-py,ex=event.clientX-centerX,ey=centerY-event.clientY;
     const startRadius=Math.hypot(sx,sy),endRadius=Math.hypot(ex,ey);
     const angle=Math.min(startRadius,endRadius)>8?Math.atan2(sx*ey-sy*ex,sx*ex+sy*ey):-(event.clientX-px)*0.01;
-    rotationDelta.setFromAxisAngle(viewAxis,angle);
+    rotationDelta.setFromAxisAngle(viewAxis,angle*dragRotationBoost);
   }else{
     const dx=event.clientX-px,dy=event.clientY-py;
     const radiansPerPixel=2/Math.max(Math.min(cv.clientWidth,cv.clientHeight),1);
-    const angle=Math.hypot(dx,dy)*radiansPerPixel;
+    const angle=Math.hypot(dx,dy)*radiansPerPixel*dragRotationBoost;
     if(angle<=1e-12)return;
     // Screen-space CAD rotation matching the original/SOLIDWORKS drag direction.
     rotationAxis.set(dy,dx,0).normalize();
@@ -466,9 +472,20 @@ function updateRotation(event){
 }
 function pointerZoomAnchor(event){
   const hit=raycastAt(event);
-  if(hit)return zoomAnchor.copy(hit.point);
+  if(hit)return {point:zoomAnchor.copy(hit.point),surfaceScale:hitSurfaceScale(hit),hasSurface:true};
   zoomPlane.constant=-pivot.position.z;
-  return raycaster.ray.intersectPlane(zoomPlane,zoomAnchor)||zoomAnchor.copy(pivot.position);
+  return {point:raycaster.ray.intersectPlane(zoomPlane,zoomAnchor)||zoomAnchor.copy(pivot.position),surfaceScale:modelRadius,hasSurface:false};
+}
+function hitSurfaceScale(hit){
+  const radius=hit?.object.geometry.boundingSphere?.radius;
+  const scale=hit?.object.matrixWorld.getMaxScaleOnAxis();
+  return radius>0&&scale>0?radius*scale:modelRadius;
+}
+function beginPan(event){
+  zoomSequence=null;zoomFocusLocal=null;
+  const hit=raycastAt(event);
+  panDepth=Math.max(1e-7,dist-(hit?.point.z??pivot.position.z));
+  panScale=hitSurfaceScale(hit);
 }
 function selectAt(event){
   const hit=raycastAt(event);
@@ -483,6 +500,7 @@ cv.addEventListener('pointerdown',event=>{
   cancelInitialFit();
   pointerMoved=false; px=downX=event.clientX; py=downY=event.clientY;
   if(pointerAction==='rotate')beginRotation(event);
+  if(pointerAction==='pan')beginPan(event);
   cv.setPointerCapture(event.pointerId); event.preventDefault();
 });
 cv.addEventListener('pointermove',event=>{
@@ -491,8 +509,7 @@ cv.addEventListener('pointermove',event=>{
   if(Math.hypot(event.clientX-downX,event.clientY-downY)>3) pointerMoved=true;
   if(pointerAction==='rotate'&&pointerMoved)updateRotation(event);
   if(pointerAction==='pan'&&pointerMoved){
-    const viewDepth=Math.max(dist-pivot.position.z,modelRadius*0.01);
-    const unitsPerPixel=2*viewDepth*Math.tan(cam.fov*Math.PI/360)/Math.max(drop.clientHeight,1);
+    const unitsPerPixel=2*panDepth*Math.tan(cam.fov*Math.PI/360)/Math.max(drop.clientHeight,1)*closeUpBoost(panDepth,panScale,4);
     pivot.position.x+=dx*unitsPerPixel; pivot.position.y-=dy*unitsPerPixel;
   }
   if(pointerAction==='rotate'||pointerAction==='pan')invalidate();
@@ -516,13 +533,26 @@ cv.addEventListener('contextmenu',event=>event.preventDefault());
 cv.addEventListener('wheel',event=>{
   event.preventDefault();
   cancelInitialFit();
-  const anchor=pointerZoomAnchor(event),oldDist=dist;
+  const elapsed=event.timeStamp-(zoomSequence?.lastTime??-Infinity);
+  const moved=zoomSequence&&Math.hypot(event.clientX-zoomSequence.clientX,event.clientY-zoomSequence.clientY)>20;
+  if(!zoomSequence||elapsed>450||elapsed<0||moved){
+    const {point,surfaceScale,hasSurface}=pointerZoomAnchor(event);
+    zoomSequence={
+      local:point.clone().sub(pivot.position).applyQuaternion(viewQuaternion.clone().invert()),
+      surfaceScale,hasSurface,clientX:event.clientX,clientY:event.clientY,lastTime:event.timeStamp,
+    };
+    zoomFocusLocal=zoomSequence.local;
+  }
+  zoomSequence.lastTime=event.timeStamp;
+  const anchor=zoomAnchor.copy(zoomSequence.local).applyQuaternion(viewQuaternion).add(pivot.position);
   const delta=event.deltaY*(event.deltaMode===1?16:event.deltaMode===2?Math.max(drop.clientHeight,1):1);
-  const minDist=Math.max(modelRadius*0.08,anchor.z+modelRadius*0.01);
-  const nextDist=Math.min(modelRadius*100,Math.max(minDist,dist*Math.exp(delta*0.001)));
-  const oldDepth=oldDist-anchor.z,newDepth=nextDist-anchor.z;
-  if(oldDepth>1e-6&&newDepth>1e-6){const scale=newDepth/oldDepth;pivot.position.x+=anchor.x*(scale-1);pivot.position.y+=anchor.y*(scale-1);}
-  dist=nextDist;
+  const oldDepth=dist-anchor.z;
+  if(oldDepth>0){
+    const newDepth=zoomedSurfaceDepth(oldDepth,delta,zoomSequence.surfaceScale,modelRadius*100,zoomSequence.hasSurface);
+    const scale=newDepth/oldDepth;
+    pivot.position.x+=anchor.x*(scale-1);pivot.position.y+=anchor.y*(scale-1);
+    dist=anchor.z+newDepth;
+  }
   invalidate();
 },{passive:false});
 async function handleFile(file){

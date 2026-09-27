@@ -1,6 +1,6 @@
 {
   "name": "excelsisview",
-  "version": "1.1.35",
+  "version": "1.1.36",
   "description": "Excelsis DXF, DWG, and PDF viewer.",
   "author": "Excelsis",
   "license": "AGPL-3.0-or-later",
@@ -192,7 +192,7 @@
       }
     ],
     "directories": {
-      "output": "../dist-1.1.35",
+      "output": "../dist-1.1.36",
       "buildResources": "build"
     },
     "afterPack": "scripts/after-pack.cjs",
