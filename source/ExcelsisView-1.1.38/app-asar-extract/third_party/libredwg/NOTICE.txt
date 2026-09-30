@@ -1,0 +1,41 @@
+GNU LibreDWG 0.14.8492
+Copyright LibreDWG contributors
+License: GNU General Public License version 3 or later
+
+ExcelsisView invokes the separate `dwg2dxf` command-line program to provide
+read-only DWG viewing. The binary and matching source are redistributed under
+GPL-3.0-or-later. The CLI is locally rebuilt from this pinned source, with
+the ASCII-DXF BLOCKS writer fix described below; it is not the stock CLI.
+
+Pinned upstream commit:
+  c34d1efb8fce8dfcd5bd7b4308c0d5e0b9de0a30
+
+Official release:
+  https://github.com/LibreDWG/libredwg/releases/tag/0.14.8492
+
+Official binary asset:
+  libredwg-0.14.8492-win64.zip
+  SHA-256: 7905b41d507d8e4d817bc209507addc9e3ada61d66316350d4ad3de85238b189
+
+Matching source included with the application:
+  libredwg-0.14.8492-source.tar.gz
+  SHA-256: 9935245817278c944c681527ef52eee81ccf720fce09f9fb467d0d6a926ae3ce
+
+Local modification, 2026-09-30 (blockscan1):
+  out_dxf.c: keep the BLOCK_HEADER scan index separate from the entity
+  sequence writer index. POLYLINE/INSERT child sequences must not skip
+  later block definitions. No DWG decoding code was changed.
+
+Exact changed source and MinGW64 build inputs are installed under excelsis/:
+  out_dxf.c, config-mingw64.h, CMakeLists.txt.
+  Combine them with the pinned upstream archive above. The portable
+  scripts/build-libredwg.cjs rebuild script is in the application source ZIP.
+  Existing libredwg-0.dll and its companion DLLs remain the unmodified
+  pinned upstream runtime; the rebuilt CLI statically links LibreDWG and
+  uses the bundled libiconv-2.dll.
+
+This snapshot postdates and includes the fixes released in 0.14.8413 for
+CVE-2026-15181, CVE-2026-15184, and CVE-2026-9529, in addition to the earlier
+fixes tracked for CVE-2026-9502, CVE-2026-9503, CVE-2026-9530, and
+CVE-2026-15520. Native execution is additionally placed inside an
+ExcelsisView AppContainer and bounded by a Windows Job Object.
