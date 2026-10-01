@@ -123,5 +123,3 @@ confidential files.
 Authored ExcelsisView code is `AGPL-3.0-or-later`; see [LICENSE](LICENSE).
 Bundled third-party components retain their own compatible licenses and
 notices.
-
-
