@@ -1,17 +1,23 @@
 # ExcelsisView
 
-ExcelsisView 1.1.43 is an open-source Windows viewer for DXF, DWG, regular
+ExcelsisView 1.1.44 is an open-source Windows viewer for DXF, DWG, regular
 PDF, and supported PRC/U3D 3D PDF documents. Document processing is local,
 and native document parsers run behind Windows process-containment and
 resource limits.
 
 ## Download
 
-- [Windows installer](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.43/ExcelsisView-Setup-1.1.43.exe)
-- [Release notes and all assets](https://github.com/simonsystem609/ExcelsisViewer/releases/tag/excelsis-view-v1.1.43)
-- [Exact corresponding-source archive](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.43/SOURCE-ExcelsisView-1.1.43.zip)
+- [Windows installer](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.44/ExcelsisView-Setup-1.1.44.exe)
+- [Release notes and all assets](https://github.com/simonsystem609/ExcelsisViewer/releases/tag/excelsis-view-v1.1.44)
+- [Exact corresponding-source archive](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.44/SOURCE-ExcelsisView-1.1.44.zip)
 - [SHA-256 checksums](SHA256SUMS.txt)
-- [Licensing and security audit](AUDIT-1.1.43.md)
+- [Licensing and security audit](AUDIT-1.1.44.md)
+
+Version 1.1.44 shows up to five trailing folders on tabs when they fit, with
+adaptive shortening on narrow tabs. Right-clicking a tab body offers **Open
+folder**; the arrow retains its document list. Folder identity is checked in
+the main process before opening Explorer. Existing document/session protections,
+keyboard file navigation and the manual macro updater remain unchanged.
 
 Version 1.1.43 keeps the current DXF, DWG, PDF or 3D PDF editor visible
 while its folder file list is open. The arrow, Escape or an outside click
@@ -75,7 +81,7 @@ The clean-build, security, source and packaged-byte gates passed for this releas
 
 The installer and ExcelsisView binaries are currently unsigned, so Windows
 may show a SmartScreen warning. No Microsoft Defender scan is claimed.
-Kaspersky 21.26 on 2026-10-01
+Kaspersky 21.26 on 2026-10-08
 scanned an exact installer copy with zero
 detections or suspicions. Verify the installer SHA-256 before running it.
 
@@ -86,7 +92,7 @@ contains the application source, the pinned modified nanoPRC source, the
 pinned modified U3D source, the LibreDWG source archive, license texts, and
 the scripts used to rebuild the release.
 
-From `source/ExcelsisView-1.1.43/app-asar-extract` on Windows with Node.js 24,
+From `source/ExcelsisView-1.1.44/app-asar-extract` on Windows with Node.js 24,
 npm, PowerShell, the documented native prerequisites, and Zig 0.16.0:
 
 ```powershell
@@ -95,7 +101,7 @@ npm run dist
 ```
 
 See
-[`source/ExcelsisView-1.1.43/app-asar-extract/SOURCE.md`](source/ExcelsisView-1.1.43/app-asar-extract/SOURCE.md)
+[`source/ExcelsisView-1.1.44/app-asar-extract/SOURCE.md`](source/ExcelsisView-1.1.44/app-asar-extract/SOURCE.md)
 for the complete build requirements.
 
 ## Project links
