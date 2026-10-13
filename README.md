@@ -1,17 +1,35 @@
 # ExcelsisView
 
-ExcelsisView 1.1.44 is an open-source Windows viewer for DXF, DWG, regular
+ExcelsisView 1.1.48 is an open-source Windows viewer for DXF, DWG, regular
 PDF, and supported PRC/U3D 3D PDF documents. Document processing is local,
 and native document parsers run behind Windows process-containment and
 resource limits.
 
 ## Download
 
-- [Windows installer](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.44/ExcelsisView-Setup-1.1.44.exe)
-- [Release notes and all assets](https://github.com/simonsystem609/ExcelsisViewer/releases/tag/excelsis-view-v1.1.44)
-- [Exact corresponding-source archive](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.44/SOURCE-ExcelsisView-1.1.44.zip)
+- [Windows installer](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.48/ExcelsisView-Setup-1.1.48.exe)
+- [Release notes and all assets](https://github.com/simonsystem609/ExcelsisViewer/releases/tag/excelsis-view-v1.1.48)
+- [Exact corresponding-source archive](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.48/SOURCE-ExcelsisView-1.1.48.zip)
 - [SHA-256 checksums](SHA256SUMS.txt)
-- [Licensing and security audit](AUDIT-1.1.44.md)
+- [Licensing and security audit](AUDIT-1.1.48.md)
+
+Version 1.1.48 improves ordinary PDF text/image editing, selection controls,
+shapes and visual Whiteout. Native text replacement removes supported glyph
+strings from page content while preserving positioning; unsupported content
+fails without saving over the original. Neither text editing nor Whiteout is
+secure redaction. There is no new editing engine or cloud upload.
+
+The included 1.1.47 **Cut File** action supports DXF, DWG, PDF and 3D PDF,
+with Save/Discard/Cancel before cutting and a read-only view while pending.
+An independently authored bounded Windows clipboard helper receives paste
+feedback; only a verified move closes the affected document. Real Explorer/NAS
+interoperability requires environment-specific testing. Version 1.1.46 adds a
+separate, Cancel-default **permanent-delete** warning if recycling fails: only
+explicit approval permits one nonrecursive file deletion, with no retry.
+Version 1.1.45 adds guarded **Close tabs** without deleting files. Full names
+embedded in compatible laser DXFs are displayed as untrusted labels, never
+used as file-action paths. The confined embedded-view guard and manual macro
+updater remain.
 
 Version 1.1.44 shows up to five trailing folders on tabs when they fit, with
 adaptive shortening on narrow tabs. Right-clicking a tab body offers **Open
@@ -81,7 +99,7 @@ The clean-build, security, source and packaged-byte gates passed for this releas
 
 The installer and ExcelsisView binaries are currently unsigned, so Windows
 may show a SmartScreen warning. No Microsoft Defender scan is claimed.
-Kaspersky 21.26 on 2026-10-08
+Kaspersky 21.26 on 2026-10-13
 scanned an exact installer copy with zero
 detections or suspicions. Verify the installer SHA-256 before running it.
 
@@ -92,7 +110,7 @@ contains the application source, the pinned modified nanoPRC source, the
 pinned modified U3D source, the LibreDWG source archive, license texts, and
 the scripts used to rebuild the release.
 
-From `source/ExcelsisView-1.1.44/app-asar-extract` on Windows with Node.js 24,
+From `source/ExcelsisView-1.1.48/app-asar-extract` on Windows with Node.js 24,
 npm, PowerShell, the documented native prerequisites, and Zig 0.16.0:
 
 ```powershell
@@ -101,7 +119,7 @@ npm run dist
 ```
 
 See
-[`source/ExcelsisView-1.1.44/app-asar-extract/SOURCE.md`](source/ExcelsisView-1.1.44/app-asar-extract/SOURCE.md)
+[`source/ExcelsisView-1.1.48/app-asar-extract/SOURCE.md`](source/ExcelsisView-1.1.48/app-asar-extract/SOURCE.md)
 for the complete build requirements.
 
 ## Project links
