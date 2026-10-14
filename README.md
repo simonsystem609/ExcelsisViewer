@@ -1,17 +1,24 @@
 # ExcelsisView
 
-ExcelsisView 1.1.48 is an open-source Windows viewer for DXF, DWG, regular
+ExcelsisView 1.1.50 is an open-source Windows viewer for DXF, DWG, regular
 PDF, and supported PRC/U3D 3D PDF documents. Document processing is local,
 and native document parsers run behind Windows process-containment and
 resource limits.
 
 ## Download
 
-- [Windows installer](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.48/ExcelsisView-Setup-1.1.48.exe)
-- [Release notes and all assets](https://github.com/simonsystem609/ExcelsisViewer/releases/tag/excelsis-view-v1.1.48)
-- [Exact corresponding-source archive](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.48/SOURCE-ExcelsisView-1.1.48.zip)
+- [Windows installer](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.50/ExcelsisView-Setup-1.1.50.exe)
+- [Release notes and all assets](https://github.com/simonsystem609/ExcelsisViewer/releases/tag/excelsis-view-v1.1.50)
+- [Exact corresponding-source archive](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.50/SOURCE-ExcelsisView-1.1.50.zip)
 - [SHA-256 checksums](SHA256SUMS.txt)
-- [Licensing and security audit](AUDIT-1.1.48.md)
+- [Licensing and security audit](AUDIT-1.1.50.md)
+
+Version 1.1.50 fixes Explorer multi-selection for **Merge PDFs** and **Batch
+print**. Merge selects 2–64 PDFs from one folder, defaults to oldest-modified
+first, permits reordering and rotation, and writes a new `Merged.pdf` without
+overwriting existing files. The included 1.1.49 changes improve PDF editing
+and print controls and add per-folder close buttons. Physical printer behavior
+and Windows selection prompts depend on the environment.
 
 Version 1.1.48 improves ordinary PDF text/image editing, selection controls,
 shapes and visual Whiteout. Native text replacement removes supported glyph
@@ -99,7 +106,7 @@ The clean-build, security, source and packaged-byte gates passed for this releas
 
 The installer and ExcelsisView binaries are currently unsigned, so Windows
 may show a SmartScreen warning. No Microsoft Defender scan is claimed.
-Kaspersky 21.26 on 2026-10-13
+Kaspersky 21.26 on 2026-10-14
 scanned an exact installer copy with zero
 detections or suspicions. Verify the installer SHA-256 before running it.
 
@@ -110,7 +117,7 @@ contains the application source, the pinned modified nanoPRC source, the
 pinned modified U3D source, the LibreDWG source archive, license texts, and
 the scripts used to rebuild the release.
 
-From `source/ExcelsisView-1.1.48/app-asar-extract` on Windows with Node.js 24,
+From `source/ExcelsisView-1.1.50/app-asar-extract` on Windows with Node.js 24,
 npm, PowerShell, the documented native prerequisites, and Zig 0.16.0:
 
 ```powershell
@@ -119,7 +126,7 @@ npm run dist
 ```
 
 See
-[`source/ExcelsisView-1.1.48/app-asar-extract/SOURCE.md`](source/ExcelsisView-1.1.48/app-asar-extract/SOURCE.md)
+[`source/ExcelsisView-1.1.50/app-asar-extract/SOURCE.md`](source/ExcelsisView-1.1.50/app-asar-extract/SOURCE.md)
 for the complete build requirements.
 
 ## Project links

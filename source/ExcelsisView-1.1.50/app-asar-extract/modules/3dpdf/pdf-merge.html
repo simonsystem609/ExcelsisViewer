@@ -1,0 +1,6 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Merge PDFs</title><link rel="stylesheet" href="./pdf-merge.css"></head>
+<body><header><h1>Merge PDFs</h1><p>Default order: oldest modified first. Reorder files or rotate their pages, then Save.</p><p id="folder" class="folder"></p></header>
+<main id="files" aria-label="PDF merge order"></main>
+<footer><p id="status" role="status">Preparing selected PDFs…</p><div><button id="cancel">Cancel</button><button id="open" hidden>Open merged PDF</button><button id="save" class="primary" disabled>Save</button></div><small>Saved beside the originals as Merged.pdf (or the next free number). Originals stay unchanged.</small></footer>
+<script type="module" src="./pdf-merge.mjs"></script></body></html>
