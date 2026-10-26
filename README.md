@@ -1,17 +1,24 @@
 # ExcelsisView
 
-ExcelsisView 1.1.50 is an open-source Windows viewer for DXF, DWG, regular
+ExcelsisView 1.1.52 is an open-source Windows viewer for DXF, DWG, regular
 PDF, and supported PRC/U3D 3D PDF documents. Document processing is local,
 and native document parsers run behind Windows process-containment and
 resource limits.
 
 ## Download
 
-- [Windows installer](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.50/ExcelsisView-Setup-1.1.50.exe)
-- [Release notes and all assets](https://github.com/simonsystem609/ExcelsisViewer/releases/tag/excelsis-view-v1.1.50)
-- [Exact corresponding-source archive](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.50/SOURCE-ExcelsisView-1.1.50.zip)
+- [Windows installer](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.52/ExcelsisView-Setup-1.1.52.exe)
+- [Release notes and all assets](https://github.com/simonsystem609/ExcelsisViewer/releases/tag/excelsis-view-v1.1.52)
+- [Exact corresponding-source archive](https://github.com/simonsystem609/ExcelsisViewer/releases/download/excelsis-view-v1.1.52/SOURCE-ExcelsisView-1.1.52.zip)
 - [SHA-256 checksums](SHA256SUMS.txt)
-- [Licensing and security audit](AUDIT-1.1.50.md)
+- [Licensing and security audit](AUDIT-1.1.52.md)
+
+Version 1.1.52 adds same-size DXF hole editing and batch thread-hole offsets,
+keeps the feature list aligned with selection, and opens the next file after
+deleting the current one. PDF filenames wrap in full; folder navigation reuses
+file bytes and directory listings. Supported FreeText annotations and older
+covered labels can be edited. These editing tools are not secure redaction.
+The runtime is updated to Electron 43.8.3.
 
 Version 1.1.50 fixes Explorer multi-selection for **Merge PDFs** and **Batch
 print**. Merge selects 2–64 PDFs from one folder, defaults to oldest-modified
@@ -117,7 +124,7 @@ contains the application source, the pinned modified nanoPRC source, the
 pinned modified U3D source, the LibreDWG source archive, license texts, and
 the scripts used to rebuild the release.
 
-From `source/ExcelsisView-1.1.50/app-asar-extract` on Windows with Node.js 24,
+From `source/ExcelsisView-1.1.52/app-asar-extract` on Windows with Node.js 24,
 npm, PowerShell, the documented native prerequisites, and Zig 0.16.0:
 
 ```powershell
@@ -126,7 +133,7 @@ npm run dist
 ```
 
 See
-[`source/ExcelsisView-1.1.50/app-asar-extract/SOURCE.md`](source/ExcelsisView-1.1.50/app-asar-extract/SOURCE.md)
+[`source/ExcelsisView-1.1.52/app-asar-extract/SOURCE.md`](source/ExcelsisView-1.1.52/app-asar-extract/SOURCE.md)
 for the complete build requirements.
 
 ## Project links
@@ -154,3 +161,5 @@ confidential files.
 Authored ExcelsisView code is `AGPL-3.0-or-later`; see [LICENSE](LICENSE).
 Bundled third-party components retain their own compatible licenses and
 notices.
+
+

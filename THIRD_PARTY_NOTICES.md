@@ -1,6 +1,6 @@
 # ExcelsisView third-party notices
 
-ExcelsisView 1.1.50 is licensed at product level under the GNU Affero General
+ExcelsisView 1.1.52 is licensed at product level under the GNU Affero General
 Public License version 3 or later (AGPL-3.0-or-later). See `LICENSE.txt`.
 Component-specific licenses remain in force; this inventory covers the
 libraries and build components distributed in the Windows installer. Exact
@@ -74,7 +74,7 @@ another location is stated below.
 
 ## Application and installer runtime
 
-- Electron 43.7.7, MIT. `LICENSE.electron.txt` is installed beside the
+- Electron 43.8.3, MIT. `LICENSE.electron.txt` is installed beside the
   application executable.
 - Chromium and its third-party components. `LICENSES.chromium.html` is
   installed beside the application executable.
